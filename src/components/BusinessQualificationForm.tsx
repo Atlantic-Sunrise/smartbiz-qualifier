@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { VoiceInput } from "./VoiceInput";
 import { analyzeBusinessLead } from "@/services/aiAnalysisService";
+import { supabase } from "@/integrations/supabase/client";
 import {
   BusinessFormData,
   TOP_INDUSTRIES,
@@ -44,12 +44,46 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     setIsLoading(true);
     try {
       const analysis = await analyzeBusinessLead(data);
+      
+      const user = (await supabase.auth.getUser()).data.user;
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const { error: storageError } = await supabase
+        .from('business_qualifications')
+        .insert({
+          user_id: user.id,
+          company_name: data.companyName,
+          industry: data.industry,
+          employee_count: data.employeeCount,
+          annual_revenue: data.annualRevenue,
+          website: data.website,
+          challenges: data.challenges
+        });
+
+      if (storageError) {
+        console.error('Error storing form data:', storageError);
+        toast({
+          title: "Error",
+          description: "Failed to save form data. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       onResults(analysis);
+      
+      toast({
+        title: "Success",
+        description: "Form data has been saved successfully.",
+      });
     } catch (error) {
-      console.error('Error analyzing business:', error);
+      console.error('Error processing form:', error);
       toast({
         title: "Error",
-        description: "Failed to analyze business. Please check your API key and try again.",
+        description: "Failed to process form. Please check your API key and try again.",
         variant: "destructive",
       });
     } finally {
