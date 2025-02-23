@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Mic, MicOff } from "lucide-react";
-import { useConversation } from "@11labs/react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,74 +14,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface BusinessFormData {
-  companyName: string;
-  industry: string;
-  employeeCount: string;
-  annualRevenue: string;
-  website: string;
-  challenges: string;
-}
-
-const TOP_INDUSTRIES = [
-  "Technology & Software",
-  "Retail & E-commerce",
-  "Healthcare & Medical",
-  "Food & Restaurant",
-  "Professional Services",
-  "Real Estate",
-  "Construction & Contracting",
-  "Marketing & Digital Services",
-  "Education & Training",
-  "Manufacturing & Production"
-];
-
-const EMPLOYEE_RANGES = [
-  "1-4 employees",
-  "5-9 employees",
-  "10-19 employees",
-  "20-49 employees",
-  "50-99 employees",
-  "100-249 employees",
-  "250-499 employees",
-  "500+ employees"
-];
-
-const REVENUE_RANGES = [
-  "Under $100,000",
-  "$100,000 - $499,999",
-  "$500,000 - $999,999",
-  "$1M - $4.99M",
-  "$5M - $9.99M",
-  "$10M - $19.99M",
-  "$20M - $49.99M",
-  "$50M+"
-];
-
-const questions: Record<keyof BusinessFormData, string> = {
-  companyName: "What is the name of your company?",
-  industry: "What industry does your company operate in?",
-  employeeCount: "How many employees does your company have?",
-  annualRevenue: "What is your company's annual revenue range?",
-  website: "What is your company's website address?",
-  challenges: "What are the main challenges your business is facing?"
-};
+import { VoiceInput } from "./VoiceInput";
+import { analyzeBusinessLead } from "@/services/aiAnalysisService";
+import {
+  BusinessFormData,
+  TOP_INDUSTRIES,
+  EMPLOYEE_RANGES,
+  REVENUE_RANGES,
+} from "@/constants/businessFormConstants";
 
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [currentField, setCurrentField] = useState<keyof BusinessFormData | null>(null);
   const { toast } = useToast();
-  
-  const conversation = useConversation({
-    overrides: {
-      tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL"
-      }
-    }
-  });
 
   const onIndustrySelect = (value: string) => {
     setValue("industry", value);
@@ -97,111 +40,10 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     setValue("annualRevenue", value);
   };
 
-  const startVoiceInteraction = async () => {
-    if (!window.localStorage.getItem('eleven_labs_key')) {
-      toast({
-        title: "API Key Missing",
-        description: "Please add your ElevenLabs API key first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!('webkitSpeechRecognition' in window)) {
-      toast({
-        title: "Speech Recognition Not Available",
-        description: "Your browser doesn't support speech recognition. Please use a Chromium-based browser.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const fields: (keyof BusinessFormData)[] = ['companyName', 'industry', 'employeeCount', 'annualRevenue', 'website', 'challenges'];
-    
-    for (const field of fields) {
-      setCurrentField(field);
-      await askQuestion(questions[field], field);
-    }
-
-    setCurrentField(null);
-  };
-
-  const askQuestion = async (question: string, field: keyof BusinessFormData) => {
-    return new Promise<void>((resolve) => {
-      if (!('webkitSpeechRecognition' in window)) {
-        resolve();
-        return;
-      }
-
-      const recognition = new window.webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      conversation.startSession({
-        text: question
-      });
-
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        resolve();
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setValue(field, transcript);
-      };
-
-      recognition.start();
-    });
-  };
-
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      if (!apiKey) {
-        throw new Error("Gemini API key not found");
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-      const prompt = `As an expert business analyst, analyze this lead and provide a qualification score (0-100) and detailed insights.
-      Company: ${data.companyName}
-      Industry: ${data.industry}
-      Employees: ${data.employeeCount}
-      Annual Revenue: ${data.annualRevenue}
-      Website: ${data.website}
-      Main Challenges: ${data.challenges}
-      
-      Provide a JSON response with this exact format:
-      {
-        "score": number between 0-100,
-        "summary": "brief qualification summary",
-        "insights": ["insight1", "insight2", "insight3"],
-        "recommendations": ["rec1", "rec2", "rec3"]
-      }`;
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      let analysis;
-      try {
-        analysis = JSON.parse(text);
-      } catch (e) {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysis = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error("Could not parse AI response");
-        }
-      }
-
+      const analysis = await analyzeBusinessLead(data);
       onResults(analysis);
     } catch (error) {
       console.error('Error analyzing business:', error);
@@ -218,32 +60,7 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   return (
     <div className="min-h-screen w-full p-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <Card className="w-full max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn">
-        <div className="mb-6">
-          <Button 
-            type="button" 
-            onClick={startVoiceInteraction}
-            className="w-full mb-4"
-            variant="outline"
-            disabled={!('webkitSpeechRecognition' in window)}
-          >
-            {isListening ? (
-              <>
-                <Mic className="w-4 h-4 mr-2 animate-pulse text-red-500" />
-                Listening...
-              </>
-            ) : (
-              <>
-                <MicOff className="w-4 h-4 mr-2" />
-                Start Voice Interview
-              </>
-            )}
-          </Button>
-          {currentField && (
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              Currently asking about: {currentField}
-            </div>
-          )}
-        </div>
+        <VoiceInput onFieldUpdate={setValue} />
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-4">
