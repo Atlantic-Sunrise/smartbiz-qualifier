@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mic, MicOff } from "lucide-react";
 import * as fal from "@fal-ai/serverless-client";
+import { useConversation } from "@11labs/react";
 
 interface BusinessFormData {
   companyName: string;
@@ -23,9 +24,87 @@ interface AIResponse {
 }
 
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<BusinessFormData>();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [currentField, setCurrentField] = useState<keyof BusinessFormData | null>(null);
   const { toast } = useToast();
+  
+  const conversation = useConversation({
+    overrides: {
+      tts: {
+        voiceId: "EXAVITQu4vr4xnSDxMaL" // Using Sarah's voice
+      }
+    }
+  });
+
+  const questions = {
+    companyName: "What is your company name?",
+    industry: "What industry are you in?",
+    employeeCount: "How many employees do you have?",
+    annualRevenue: "What is your annual revenue?",
+    website: "What is your website address? You can skip this if you don't have one.",
+    challenges: "What are your main business challenges?"
+  };
+
+  useEffect(() => {
+    if (!window.localStorage.getItem('eleven_labs_key')) {
+      toast({
+        title: "ElevenLabs API Key Required",
+        description: "Please add your ElevenLabs API key in the settings to enable voice interaction.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
+  const startVoiceInteraction = async () => {
+    if (!window.localStorage.getItem('eleven_labs_key')) {
+      toast({
+        title: "API Key Missing",
+        description: "Please add your ElevenLabs API key first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const fields: (keyof BusinessFormData)[] = ['companyName', 'industry', 'employeeCount', 'annualRevenue', 'website', 'challenges'];
+    
+    for (const field of fields) {
+      setCurrentField(field);
+      await askQuestion(questions[field], field);
+    }
+
+    setCurrentField(null);
+  };
+
+  const askQuestion = async (question: string, field: keyof BusinessFormData) => {
+    return new Promise<void>((resolve) => {
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      // First, speak the question
+      conversation.startSession({
+        text: question
+      });
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        resolve();
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setValue(field, transcript);
+      };
+
+      recognition.start();
+    });
+  };
 
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
@@ -85,6 +164,32 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
 
   return (
     <Card className="w-full max-w-2xl mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-lg animate-fadeIn">
+      <div className="mb-6">
+        <Button 
+          type="button" 
+          onClick={startVoiceInteraction}
+          className="w-full mb-4"
+          variant="outline"
+        >
+          {isListening ? (
+            <>
+              <Mic className="w-4 h-4 mr-2 animate-pulse text-red-500" />
+              Listening...
+            </>
+          ) : (
+            <>
+              <MicOff className="w-4 h-4 mr-2" />
+              Start Voice Interview
+            </>
+          )}
+        </Button>
+        {currentField && (
+          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+            Currently asking about: {currentField}
+          </div>
+        )}
+      </div>
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
           <div>

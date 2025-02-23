@@ -10,20 +10,24 @@ import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [results, setResults] = useState<any>(null);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!localStorage.getItem('fal_api_key'));
+  const [showApiKeyInput, setShowApiKeyInput] = useState(
+    !localStorage.getItem('fal_api_key') || !localStorage.getItem('eleven_labs_key')
+  );
   const { toast } = useToast();
   
   const handleApiKeySubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const apiKey = formData.get('apiKey') as string;
+    const falApiKey = formData.get('falApiKey') as string;
+    const elevenLabsKey = formData.get('elevenLabsKey') as string;
     
-    if (apiKey) {
-      localStorage.setItem('fal_api_key', apiKey);
+    if (falApiKey && elevenLabsKey) {
+      localStorage.setItem('fal_api_key', falApiKey);
+      localStorage.setItem('eleven_labs_key', elevenLabsKey);
       setShowApiKeyInput(false);
       toast({
         title: "Success",
-        description: "API key has been saved",
+        description: "API keys have been saved",
       });
     }
   };
@@ -44,16 +48,26 @@ const Index = () => {
           <Card className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800">
             <form onSubmit={handleApiKeySubmit} className="space-y-4">
               <div>
-                <Label htmlFor="apiKey">Fal.ai API Key</Label>
+                <Label htmlFor="falApiKey">Fal.ai API Key</Label>
                 <Input
-                  id="apiKey"
-                  name="apiKey"
+                  id="falApiKey"
+                  name="falApiKey"
                   type="password"
                   placeholder="Enter your fal.ai API key"
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">Save API Key</Button>
+              <div>
+                <Label htmlFor="elevenLabsKey">ElevenLabs API Key</Label>
+                <Input
+                  id="elevenLabsKey"
+                  name="elevenLabsKey"
+                  type="password"
+                  placeholder="Enter your ElevenLabs API key"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">Save API Keys</Button>
             </form>
           </Card>
         ) : (
