@@ -1,6 +1,8 @@
 
-import { VoiceQualificationDiscussion } from "./VoiceQualificationDiscussion";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MessageSquare } from "lucide-react";
 import { ScoreDisplay } from "./qualification-results/ScoreDisplay";
 import { InsightsList } from "./qualification-results/InsightsList";
 import { RecommendationsList } from "./qualification-results/RecommendationsList";
@@ -27,7 +29,15 @@ export function QualificationResults({ results }: QualificationResultsProps) {
       </div>
 
       <Card className="p-6">
-        <VoiceQualificationDiscussion results={results} />
+        <Link to="/discuss" state={{ results }} className="w-full block">
+          <Button 
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Discuss Results with AI Assistant
+          </Button>
+        </Link>
       </Card>
     </div>
   );

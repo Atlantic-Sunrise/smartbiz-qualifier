@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
+import Discuss from "@/pages/Discuss";
 import NotFound from "@/pages/NotFound";
 import "./App.css";
 
@@ -41,6 +42,16 @@ function App() {
           element={
             session ? (
               <Index />
+            ) : (
+              <Navigate to="/auth" replace />
+            )
+          }
+        />
+        <Route
+          path="/discuss"
+          element={
+            session ? (
+              <Discuss />
             ) : (
               <Navigate to="/auth" replace />
             )
