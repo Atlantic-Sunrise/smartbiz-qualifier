@@ -1,7 +1,11 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertTriangle, Lightbulb } from "lucide-react";
+import { Check, AlertTriangle, Lightbulb, Volume2, VolumeX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useConversation } from "@11labs/react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface QualificationResult {
   score: number;
@@ -11,6 +15,17 @@ interface QualificationResult {
 }
 
 export function QualificationResults({ results }: { results: QualificationResult }) {
+  const [isReading, setIsReading] = useState(false);
+  const { toast } = useToast();
+  
+  const conversation = useConversation({
+    overrides: {
+      tts: {
+        voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
+      }
+    }
+  });
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";
     if (score >= 60) return "text-yellow-500";
@@ -21,6 +36,36 @@ export function QualificationResults({ results }: { results: QualificationResult
     if (score >= 80) return "bg-green-100 text-green-800";
     if (score >= 60) return "bg-yellow-100 text-yellow-800";
     return "bg-red-100 text-red-800";
+  };
+
+  const readResults = async () => {
+    if (!window.localStorage.getItem('eleven_labs_key')) {
+      toast({
+        title: "API Key Missing",
+        description: "Please add your ElevenLabs API key first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsReading(true);
+    
+    const textToRead = `
+      Lead Qualification Score: ${results.score} out of 100.
+      ${results.summary}
+      
+      Key Insights:
+      ${results.insights.join(". ")}
+      
+      Recommendations:
+      ${results.recommendations.join(". ")}
+    `;
+
+    await conversation.startSession({
+      text: textToRead
+    });
+
+    setIsReading(false);
   };
 
   return (
@@ -35,6 +80,25 @@ export function QualificationResults({ results }: { results: QualificationResult
             {results.score >= 80 ? "High Potential" : results.score >= 60 ? "Medium Potential" : "Low Potential"}
           </Badge>
           <p className="mt-4 text-gray-600 dark:text-gray-300">{results.summary}</p>
+          
+          <Button
+            onClick={readResults}
+            variant="outline"
+            className="mt-4"
+            disabled={isReading}
+          >
+            {isReading ? (
+              <>
+                <Volume2 className="mr-2 h-4 w-4 animate-pulse" />
+                Reading Results...
+              </>
+            ) : (
+              <>
+                <VolumeX className="mr-2 h-4 w-4" />
+                Read Results Aloud
+              </>
+            )}
+          </Button>
         </div>
 
         <div className="space-y-4">

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
@@ -38,6 +39,10 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
 
   const onRevenueSelect = (value: string) => {
     setValue("annualRevenue", value);
+  };
+
+  const handleVoiceInput = (value: string) => {
+    setValue("challenges", value);
   };
 
   const onSubmit = async (data: BusinessFormData) => {
@@ -94,8 +99,6 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   return (
     <div className="min-h-screen w-full p-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <Card className="w-full max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn">
-        <VoiceInput onFieldUpdate={setValue} />
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-4">
             <div>
@@ -180,12 +183,15 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
 
             <div>
               <Label htmlFor="challenges">Main Business Challenges</Label>
-              <Input
-                id="challenges"
-                {...register("challenges", { required: "Business challenges are required" })}
-                className="mt-1"
-                placeholder="Describe the main challenges faced by the business"
-              />
+              <div className="space-y-2">
+                <Input
+                  id="challenges"
+                  {...register("challenges", { required: "Business challenges are required" })}
+                  className="mt-1"
+                  placeholder="Describe the main challenges faced by the business"
+                />
+                <VoiceInput onFieldUpdate={handleVoiceInput} />
+              </div>
               {errors.challenges && (
                 <p className="text-red-500 text-sm mt-1">{errors.challenges.message}</p>
               )}
