@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +18,6 @@ export function QualificationResults({ results }: { results: QualificationResult
   const [isConversing, setIsConversing] = useState(false);
   const { toast } = useToast();
   
-  // Initialize ElevenLabs conversation with more detailed configuration
   const conversation = useConversation({
     overrides: {
       agent: {
@@ -34,16 +32,12 @@ export function QualificationResults({ results }: { results: QualificationResult
           Be concise but informative in your responses.`
         },
         firstMessage: "I've analyzed your lead qualification results. Would you like me to explain any specific aspect of the analysis?",
-        language: "en",
       },
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
+        voiceId: "21m00Tcm4TlvDq8ikWAM", // Change to default voice
         modelId: "eleven_monolingual_v1",
+        apiKey: localStorage.getItem('eleven_labs_key') || '', // Directly use API key
       },
-      connection: {
-        timeout: 60000, // Increase timeout to 60 seconds
-        reconnect: true,
-      }
     },
     onMessage: (message) => {
       console.log('Received message:', message);
@@ -52,19 +46,21 @@ export function QualificationResults({ results }: { results: QualificationResult
       console.error('Conversation error:', error);
       toast({
         title: "Error",
-        description: "There was an error with the conversation. Please check your API key and try again.",
+        description: `Conversation error: ${error.message}`,
         variant: "destructive",
       });
       setIsConversing(false);
     }
   });
 
-  // Check for API key on component mount
   useEffect(() => {
     const checkApiKey = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          console.log('No user found');
+          return;
+        }
 
         const { data, error } = await supabase
           .from('profiles')
@@ -72,11 +68,16 @@ export function QualificationResults({ results }: { results: QualificationResult
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching API key:', error);
+          return;
+        }
         
         if (data?.api_keys?.eleven_labs_key) {
-          localStorage.setItem('elevenlabs_api_key', data.api_keys.eleven_labs_key);
-          localStorage.setItem('eleven_labs_key', data.api_keys.eleven_labs_key); // Set both key variations
+          console.log('Setting API key in localStorage');
+          localStorage.setItem('eleven_labs_key', data.api_keys.eleven_labs_key);
+        } else {
+          console.log('No API key found in profile');
         }
       } catch (error) {
         console.error('Error checking API key:', error);
@@ -88,25 +89,7 @@ export function QualificationResults({ results }: { results: QualificationResult
 
   const startConversation = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "User not authenticated",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('api_keys')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      const apiKey = data?.api_keys?.eleven_labs_key;
+      const apiKey = localStorage.getItem('eleven_labs_key');
       if (!apiKey) {
         toast({
           title: "API Key Missing",
@@ -116,28 +99,18 @@ export function QualificationResults({ results }: { results: QualificationResult
         return;
       }
 
-      localStorage.setItem('elevenlabs_api_key', apiKey);
-      localStorage.setItem('eleven_labs_key', apiKey); // Set both key variations
+      console.log('Starting conversation with API key present');
       setIsConversing(true);
       
       await conversation.startSession({
         agentId: "tHdevlgucdu7DHHmRaUO",
-        onError: (error) => {
-          console.error('Conversation error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to start conversation. Please check your API key and try again.",
-            variant: "destructive",
-          });
-          setIsConversing(false);
-        },
       });
 
     } catch (error) {
       console.error('Conversation error:', error);
       toast({
         title: "Error",
-        description: "Failed to start conversation. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to start conversation",
         variant: "destructive",
       });
       setIsConversing(false);
