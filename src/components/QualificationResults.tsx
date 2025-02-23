@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, AlertTriangle, Lightbulb, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -26,6 +26,18 @@ export function QualificationResults({ results }: { results: QualificationResult
     }
   });
 
+  useEffect(() => {
+    // Initialize ElevenLabs when component mounts
+    const apiKey = localStorage.getItem('eleven_labs_key');
+    if (!apiKey) {
+      toast({
+        title: "ElevenLabs API Key Required",
+        description: "Please add your ElevenLabs API key in the settings to use text-to-speech.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";
     if (score >= 60) return "text-yellow-500";
@@ -39,33 +51,43 @@ export function QualificationResults({ results }: { results: QualificationResult
   };
 
   const readResults = async () => {
-    if (!window.localStorage.getItem('eleven_labs_key')) {
+    try {
+      if (!window.localStorage.getItem('eleven_labs_key')) {
+        toast({
+          title: "API Key Missing",
+          description: "Please add your ElevenLabs API key first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsReading(true);
+      
+      const textToRead = `
+        Lead Qualification Score: ${results.score} out of 100.
+        ${results.summary}
+        
+        Key Insights:
+        ${results.insights.join(". ")}
+        
+        Recommendations:
+        ${results.recommendations.join(". ")}
+      `;
+
+      await conversation.startSession({
+        text: textToRead,
+        agentId: "esv2_JRhPgLPBvdLpJG2TXeTr" // Default agent ID for text-to-speech
+      });
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
       toast({
-        title: "API Key Missing",
-        description: "Please add your ElevenLabs API key first",
+        title: "Error",
+        description: "Failed to read results. Please check your API key and try again.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsReading(false);
     }
-
-    setIsReading(true);
-    
-    const textToRead = `
-      Lead Qualification Score: ${results.score} out of 100.
-      ${results.summary}
-      
-      Key Insights:
-      ${results.insights.join(". ")}
-      
-      Recommendations:
-      ${results.recommendations.join(". ")}
-    `;
-
-    await conversation.startSession({
-      text: textToRead
-    });
-
-    setIsReading(false);
   };
 
   return (
