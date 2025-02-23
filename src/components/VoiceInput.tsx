@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff } from "lucide-react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { questions } from "@/constants/businessFormConstants";
 
 interface VoiceInputProps {
@@ -19,15 +19,20 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       agent: {
         firstMessage: questions.challenges,
         language: "en",
+        parameters: {
+          useSpeech: true,
+          useTextInput: false
+        }
       },
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
+        voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
+        model: "eleven_turbo_v2"
       }
     },
     connectionDelay: {
-      android: 3000, // Recommended delay for Android
-      ios: 0,
-      default: 0
+      android: 3000,
+      ios: 1000,
+      default: 1000
     },
     preferHeadphonesForIosDevices: true,
     onConnect: () => {
@@ -45,21 +50,35 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       }
     },
     onError: (error) => {
-      console.error("ElevenLabs error:", error);
+      console.error("ElevenLabs error details:", error);
       toast({
-        title: "Error",
-        description: "There was an error with the voice input. Please try again.",
+        title: "Voice Input Error",
+        description: error?.message || "Failed to initialize voice input. Please check your API key and try again.",
         variant: "destructive",
       });
       setIsListening(false);
     }
   });
 
+  useEffect(() => {
+    // Verify API key on component mount
+    const apiKey = window.localStorage.getItem('eleven_labs_key');
+    if (!apiKey) {
+      console.log("No ElevenLabs API key found in localStorage");
+    } else {
+      console.log("ElevenLabs API key found with length:", apiKey.length);
+    }
+  }, []);
+
   const requestMicrophonePermission = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Microphone permission granted");
+      // Stop the stream immediately after permission check
+      stream.getTracks().forEach(track => track.stop());
       return true;
     } catch (error) {
+      console.error("Microphone permission error:", error);
       toast({
         title: "Microphone Access Required",
         description: "Please allow microphone access to use voice input.",
@@ -70,27 +89,33 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
   };
 
   const startVoiceInput = async () => {
-    if (!window.localStorage.getItem('eleven_labs_key')) {
+    const apiKey = window.localStorage.getItem('eleven_labs_key');
+    if (!apiKey) {
+      console.error("ElevenLabs API key not found");
       toast({
         title: "API Key Missing",
-        description: "Please add your ElevenLabs API key first",
+        description: "Please add your ElevenLabs API key in the settings",
         variant: "destructive",
       });
       return;
     }
 
+    console.log("Starting voice interaction with key length:", apiKey.length);
+
     const hasPermission = await requestMicrophonePermission();
     if (!hasPermission) return;
 
     try {
+      console.log("Attempting to start session...");
       await conversation.startSession({
-        agentId: "default" // Using default agent ID as before
+        agentId: "default"
       });
+      console.log("Session started successfully");
     } catch (error) {
       console.error("Failed to start voice session:", error);
       toast({
         title: "Error",
-        description: "Failed to start voice input. Please try again.",
+        description: "Failed to start voice input. Please check your API key and try again.",
         variant: "destructive",
       });
     }
@@ -98,7 +123,9 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
 
   const stopVoiceInput = async () => {
     try {
+      console.log("Ending session...");
       await conversation.endSession();
+      console.log("Session ended successfully");
     } catch (error) {
       console.error("Error ending session:", error);
     }
