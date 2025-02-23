@@ -18,7 +18,7 @@ export function QualificationResults({ results }: { results: QualificationResult
   const [isReading, setIsReading] = useState(false);
   const { toast } = useToast();
   
-  // Initialize ElevenLabs conversation with Sarah's voice
+  // Initialize ElevenLabs conversation
   const conversation = useConversation({
     overrides: {
       tts: {
@@ -29,17 +29,17 @@ export function QualificationResults({ results }: { results: QualificationResult
   });
 
   useEffect(() => {
-    // Check for ElevenLabs API key on component mount
+    // Initialize ElevenLabs API key
     const apiKey = localStorage.getItem('eleven_labs_key');
-    if (!apiKey) {
+    if (apiKey) {
+      // Set the correct API key format for ElevenLabs library
+      localStorage.setItem('elevenlabs_api_key', apiKey);
+    } else {
       toast({
         title: "ElevenLabs API Key Required",
         description: "Please add your ElevenLabs API key in the settings to use text-to-speech.",
         variant: "destructive",
       });
-    } else {
-      // Set the API key for ElevenLabs
-      window.localStorage.setItem('elevenlabs_api_key', apiKey);
     }
   }, [toast]);
 
@@ -57,11 +57,11 @@ export function QualificationResults({ results }: { results: QualificationResult
 
   const readResults = async () => {
     try {
-      const apiKey = window.localStorage.getItem('eleven_labs_key');
+      const apiKey = localStorage.getItem('elevenlabs_api_key');
       if (!apiKey) {
         toast({
           title: "API Key Missing",
-          description: "Please add your ElevenLabs API key first",
+          description: "Please add your ElevenLabs API key in the settings",
           variant: "destructive",
         });
         return;
@@ -80,9 +80,8 @@ export function QualificationResults({ results }: { results: QualificationResult
         ${results.recommendations.join(". ")}
       `;
 
-      // Start the TTS session with the correct parameters
       await conversation.startSession({
-        agentId: "text-to-speech", // Using text-to-speech mode
+        agentId: "text-to-speech",
         text: textToRead,
       });
 
