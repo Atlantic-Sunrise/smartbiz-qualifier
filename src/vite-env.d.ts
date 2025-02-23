@@ -24,3 +24,4 @@ declare class SpeechRecognition {
 }
 
 declare class webkitSpeechRecognition extends SpeechRecognition {}
+
