@@ -28,11 +28,15 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
         language: "en",
       },
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
+        voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
+        model: "eleven_turbo_v2" // Using the Turbo v2 model for faster responses
       }
     },
     onConnect: () => {
-      console.log("Connected to ElevenLabs");
+      console.log("Connected to ElevenLabs with settings:", {
+        voiceId: "EXAVITQu4vr4xnSDxMaL",
+        model: "eleven_turbo_v2"
+      });
       setIsListening(true);
     },
     onDisconnect: () => {
@@ -43,10 +47,10 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
       console.log("Received message:", message);
     },
     onError: (error) => {
-      console.error("ElevenLabs error:", error);
+      console.error("ElevenLabs error details:", error);
       toast({
         title: "Error",
-        description: "There was an error with the voice interaction. Please try again.",
+        description: error?.message || "There was an error with the voice interaction. Please try again.",
         variant: "destructive",
       });
       setIsListening(false);
@@ -56,8 +60,10 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
   const requestMicrophonePermission = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Microphone permission granted");
       return true;
     } catch (error) {
+      console.error("Microphone permission error:", error);
       toast({
         title: "Microphone Access Required",
         description: "Please allow microphone access to use voice interaction.",
@@ -70,11 +76,19 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
   const handleVolumeChange = async (value: number[]) => {
     const newVolume = value[0];
     setVolume(newVolume);
-    await conversation.setVolume({ volume: newVolume });
+    try {
+      await conversation.setVolume({ volume: newVolume });
+      console.log("Volume set to:", newVolume);
+    } catch (error) {
+      console.error("Error setting volume:", error);
+    }
   };
 
   const startVoiceInteraction = async () => {
-    if (!window.localStorage.getItem('eleven_labs_key')) {
+    // Check if API key exists in localStorage
+    const apiKey = window.localStorage.getItem('eleven_labs_key');
+    if (!apiKey) {
+      console.error("ElevenLabs API key not found");
       toast({
         title: "API Key Missing",
         description: "Please add your ElevenLabs API key first",
@@ -83,18 +97,22 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
       return;
     }
 
+    console.log("Starting voice interaction with key length:", apiKey.length);
+
     const hasPermission = await requestMicrophonePermission();
     if (!hasPermission) return;
 
     try {
+      console.log("Attempting to start session...");
       await conversation.startSession({
         agentId: "tHdevlgucdu7DHHmRaUO" // Using your agent ID for qualification discussion
       });
+      console.log("Session started successfully");
     } catch (error) {
       console.error("Failed to start voice session:", error);
       toast({
         title: "Error",
-        description: "Failed to start voice interaction. Please try again.",
+        description: "Failed to start voice interaction. Please check your API key and try again.",
         variant: "destructive",
       });
     }
@@ -102,7 +120,9 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
 
   const stopVoiceInteraction = async () => {
     try {
+      console.log("Ending session...");
       await conversation.endSession();
+      console.log("Session ended successfully");
     } catch (error) {
       console.error("Error ending session:", error);
     }
@@ -153,3 +173,4 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
     </div>
   );
 }
+
