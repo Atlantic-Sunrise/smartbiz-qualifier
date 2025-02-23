@@ -272,11 +272,11 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
         "recommendations": ["rec1", "rec2", "rec3"]
       }`;
 
-      const result = await fal.subscribe("fal-ai/text-generation-base", {
+      const result = await fal.subscribe("fal-ai/gpt-3.5-turbo", {
         input: {
           prompt: prompt
         },
-      }) as { response: string };
+      }) as AIResponse;
 
       let analysis;
       try {
