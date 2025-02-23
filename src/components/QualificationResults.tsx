@@ -77,7 +77,9 @@ export function QualificationResults({ results }: { results: QualificationResult
 
       console.log('Starting conversation with API key present');
       setIsConversing(true);
-      await conversation.startSession({});
+      await conversation.startSession({
+        agentId: "tHdevlgucdu7DHHmRaUO" // Using the specific agent ID from the URL
+      });
     } catch (error) {
       console.error('Conversation error:', error);
       toast({
