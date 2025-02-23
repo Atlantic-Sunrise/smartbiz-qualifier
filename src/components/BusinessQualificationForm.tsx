@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
@@ -9,6 +8,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Mic, MicOff, Image as ImageIcon } from "lucide-react";
 import * as fal from "@fal-ai/serverless-client";
 import { useConversation } from "@11labs/react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BusinessFormData {
   companyName: string;
@@ -29,6 +35,19 @@ interface FalImageResponse {
   }>;
 }
 
+const TOP_INDUSTRIES = [
+  "Technology & Software",
+  "Retail & E-commerce",
+  "Healthcare & Medical",
+  "Food & Restaurant",
+  "Professional Services",
+  "Real Estate",
+  "Construction & Contracting",
+  "Marketing & Digital Services",
+  "Education & Training",
+  "Manufacturing & Production"
+];
+
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
@@ -36,17 +55,45 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   const [currentField, setCurrentField] = useState<keyof BusinessFormData | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const { toast } = useToast();
   
   const conversation = useConversation({
     overrides: {
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL" // Using Sarah's voice
+        voiceId: "EXAVITQu4vr4xnSDxMaL"
       }
     }
   });
   
   const industry = watch("industry");
+
+  const generateBackgroundImage = async () => {
+    try {
+      fal.config({
+        credentials: localStorage.getItem('fal_api_key')
+      });
+
+      const result = await fal.subscribe("stable-diffusion-xl-v1", {
+        input: {
+          prompt: "A modern, abstract business background, soft gradient, professional, corporate style, very light and subtle pattern, minimal design",
+          negative_prompt: "text, words, logos, watermark, dark, busy, cluttered",
+          num_inference_steps: 30,
+          guidance_scale: 7.5
+        }
+      }) as FalImageResponse;
+
+      if (result.images?.[0]?.url) {
+        setBackgroundImage(result.images[0].url);
+      }
+    } catch (error) {
+      console.error('Error generating background image:', error);
+    }
+  };
+
+  useEffect(() => {
+    generateBackgroundImage();
+  }, []);
 
   const generateBusinessImage = async (industry: string) => {
     if (!industry) return;
@@ -168,6 +215,10 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     });
   };
 
+  const onIndustrySelect = (value: string) => {
+    setValue("industry", value);
+  };
+
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
@@ -223,142 +274,158 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-lg animate-fadeIn">
-      <div className="mb-6">
-        <Button 
-          type="button" 
-          onClick={startVoiceInteraction}
-          className="w-full mb-4"
-          variant="outline"
-          disabled={!('webkitSpeechRecognition' in window)}
-        >
-          {isListening ? (
-            <>
-              <Mic className="w-4 h-4 mr-2 animate-pulse text-red-500" />
-              Listening...
-            </>
-          ) : (
-            <>
-              <MicOff className="w-4 h-4 mr-2" />
-              Start Voice Interview
-            </>
-          )}
-        </Button>
-        {currentField && (
-          <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-            Currently asking about: {currentField}
-          </div>
-        )}
-      </div>
-
-      {generatedImage && (
-        <div className="mb-6 relative rounded-lg overflow-hidden">
-          <img 
-            src={generatedImage} 
-            alt="Industry visualization" 
-            className="w-full h-48 object-cover rounded-lg"
-          />
-          {isGeneratingImage && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-white" />
+    <div 
+      className="min-h-screen w-full p-8"
+      style={{
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      <Card className="w-full max-w-2xl mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-lg animate-fadeIn">
+        <div className="mb-6">
+          <Button 
+            type="button" 
+            onClick={startVoiceInteraction}
+            className="w-full mb-4"
+            variant="outline"
+            disabled={!('webkitSpeechRecognition' in window)}
+          >
+            {isListening ? (
+              <>
+                <Mic className="w-4 h-4 mr-2 animate-pulse text-red-500" />
+                Listening...
+              </>
+            ) : (
+              <>
+                <MicOff className="w-4 h-4 mr-2" />
+                Start Voice Interview
+              </>
+            )}
+          </Button>
+          {currentField && (
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+              Currently asking about: {currentField}
             </div>
           )}
         </div>
-      )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="companyName">Company Name</Label>
-            <Input
-              id="companyName"
-              {...register("companyName", { required: "Company name is required" })}
-              className="mt-1"
-              placeholder="Enter company name"
+        {generatedImage && (
+          <div className="mb-6 relative rounded-lg overflow-hidden">
+            <img 
+              src={generatedImage} 
+              alt="Industry visualization" 
+              className="w-full h-48 object-cover rounded-lg"
             />
-            {errors.companyName && (
-              <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>
+            {isGeneratingImage && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-white" />
+              </div>
             )}
           </div>
+        )}
 
-          <div>
-            <Label htmlFor="industry">Industry</Label>
-            <Input
-              id="industry"
-              {...register("industry", { required: "Industry is required" })}
-              className="mt-1"
-              placeholder="e.g., Technology, Healthcare, Retail"
-            />
-            {errors.industry && (
-              <p className="text-red-500 text-sm mt-1">{errors.industry.message}</p>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="companyName">Company Name</Label>
+              <Input
+                id="companyName"
+                {...register("companyName", { required: "Company name is required" })}
+                className="mt-1"
+                placeholder="Enter company name"
+              />
+              {errors.companyName && (
+                <p className="text-red-500 text-sm mt-1">{errors.companyName.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="industry">Industry</Label>
+              <Select onValueChange={onIndustrySelect}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select your industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TOP_INDUSTRIES.map((ind) => (
+                    <SelectItem key={ind} value={ind}>
+                      {ind}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.industry && (
+                <p className="text-red-500 text-sm mt-1">{errors.industry.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="employeeCount">Number of Employees</Label>
+              <Input
+                id="employeeCount"
+                {...register("employeeCount", { required: "Employee count is required" })}
+                className="mt-1"
+                placeholder="e.g., 1-10, 11-50, 51-200"
+              />
+              {errors.employeeCount && (
+                <p className="text-red-500 text-sm mt-1">{errors.employeeCount.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="annualRevenue">Annual Revenue</Label>
+              <Input
+                id="annualRevenue"
+                {...register("annualRevenue", { required: "Annual revenue is required" })}
+                className="mt-1"
+                placeholder="e.g., $100K-$500K, $500K-$1M"
+              />
+              {errors.annualRevenue && (
+                <p className="text-red-500 text-sm mt-1">{errors.annualRevenue.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                {...register("website")}
+                className="mt-1"
+                placeholder="https://example.com"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="challenges">Main Business Challenges</Label>
+              <Input
+                id="challenges"
+                {...register("challenges", { required: "Business challenges are required" })}
+                className="mt-1"
+                placeholder="Describe the main challenges faced by the business"
+              />
+              {errors.challenges && (
+                <p className="text-red-500 text-sm mt-1">{errors.challenges.message}</p>
+              )}
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white transition-all duration-300"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              "Qualify Lead"
             )}
-          </div>
-
-          <div>
-            <Label htmlFor="employeeCount">Number of Employees</Label>
-            <Input
-              id="employeeCount"
-              {...register("employeeCount", { required: "Employee count is required" })}
-              className="mt-1"
-              placeholder="e.g., 1-10, 11-50, 51-200"
-            />
-            {errors.employeeCount && (
-              <p className="text-red-500 text-sm mt-1">{errors.employeeCount.message}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="annualRevenue">Annual Revenue</Label>
-            <Input
-              id="annualRevenue"
-              {...register("annualRevenue", { required: "Annual revenue is required" })}
-              className="mt-1"
-              placeholder="e.g., $100K-$500K, $500K-$1M"
-            />
-            {errors.annualRevenue && (
-              <p className="text-red-500 text-sm mt-1">{errors.annualRevenue.message}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              {...register("website")}
-              className="mt-1"
-              placeholder="https://example.com"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="challenges">Main Business Challenges</Label>
-            <Input
-              id="challenges"
-              {...register("challenges", { required: "Business challenges are required" })}
-              className="mt-1"
-              placeholder="Describe the main challenges faced by the business"
-            />
-            {errors.challenges && (
-              <p className="text-red-500 text-sm mt-1">{errors.challenges.message}</p>
-            )}
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white transition-all duration-300"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyzing...
-            </>
-          ) : (
-            "Qualify Lead"
-          )}
-        </Button>
-      </form>
-    </Card>
+          </Button>
+        </form>
+      </Card>
+    </div>
   );
 }
