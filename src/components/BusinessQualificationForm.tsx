@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
@@ -22,6 +23,12 @@ interface AIResponse {
   response: string;
 }
 
+interface FalImageResponse {
+  images: Array<{
+    url: string;
+  }>;
+}
+
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +37,14 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const { toast } = useToast();
+  
+  const conversation = useConversation({
+    overrides: {
+      tts: {
+        voiceId: "EXAVITQu4vr4xnSDxMaL" // Using Sarah's voice
+      }
+    }
+  });
   
   const industry = watch("industry");
 
@@ -49,7 +64,7 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
           num_inference_steps: 30,
           guidance_scale: 7.5
         }
-      });
+      }) as FalImageResponse;
 
       if (result.images?.[0]?.url) {
         setGeneratedImage(result.images[0].url);
@@ -80,6 +95,16 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     website: "What is your website address? You can skip this if you don't have one.",
     challenges: "What are your main business challenges?"
   };
+
+  useEffect(() => {
+    if (!window.localStorage.getItem('eleven_labs_key')) {
+      toast({
+        title: "ElevenLabs API Key Required",
+        description: "Please add your ElevenLabs API key in the settings to enable voice interaction.",
+        variant: "destructive",
+      });
+    }
+  }, []);
 
   const startVoiceInteraction = async () => {
     if (!window.localStorage.getItem('eleven_labs_key')) {
