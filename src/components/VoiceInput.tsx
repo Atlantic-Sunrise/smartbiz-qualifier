@@ -92,10 +92,8 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     if (!hasPermission) return;
 
     try {
-      // Start the conversation session with agentId
-      // Note: You'll need to replace this with your actual agent ID
       await conversation.startSession({
-        agentId: "default" // Replace with your actual agent ID
+        agentId: "tHdevlgucdu7DHHmRaUO"
       });
     } catch (error) {
       console.error("Failed to start voice session:", error);
