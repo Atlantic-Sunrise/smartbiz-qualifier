@@ -27,7 +27,7 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     Industry: ${profile?.industry}
     Size: ${profile?.employee_count}
     Revenue: ${profile?.annual_revenue}
-    Challenges: ${profile?.main_challenges}
+    Services: ${profile?.business_services}
     
     Lead to Qualify:
     Company: ${data.companyName}
@@ -37,7 +37,7 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     Website: ${data.website}
     Main Challenges: ${data.challenges}
     
-    Consider factors like industry alignment, business size compatibility, potential synergies, and whether the lead's challenges align with what we can solve.
+    Consider factors like industry alignment, business size compatibility, potential synergies between our services and their needs, and whether we can address their challenges.
     
     Provide a JSON response with this exact format:
     {

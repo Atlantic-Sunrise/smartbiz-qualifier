@@ -58,6 +58,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_services: string | null
           company_name: string | null
           created_at: string
           id: string
@@ -65,6 +66,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_services?: string | null
           company_name?: string | null
           created_at?: string
           id: string
@@ -72,6 +74,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_services?: string | null
           company_name?: string | null
           created_at?: string
           id?: string

@@ -29,7 +29,7 @@ export function BusinessProfileSetup({ onComplete }: { onComplete: () => void })
       industry: formData.get('industry'),
       employee_count: formData.get('employeeCount'),
       annual_revenue: formData.get('annualRevenue'),
-      main_challenges: formData.get('challenges'),
+      business_services: formData.get('businessServices'),
       job_title: formData.get('jobTitle'),
     };
 
@@ -122,11 +122,11 @@ export function BusinessProfileSetup({ onComplete }: { onComplete: () => void })
         </div>
 
         <div>
-          <Label htmlFor="challenges">Main Business Challenges</Label>
+          <Label htmlFor="businessServices">Business Services</Label>
           <Input
-            id="challenges"
-            name="challenges"
-            placeholder="What are your main business challenges?"
+            id="businessServices"
+            name="businessServices"
+            placeholder="What services does your business provide?"
             required
           />
         </div>
