@@ -1,52 +1,34 @@
 
-import { useState } from "react";
+import { VoiceQualificationDiscussion } from "./VoiceQualificationDiscussion";
 import { Card } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
 import { ScoreDisplay } from "./qualification-results/ScoreDisplay";
 import { InsightsList } from "./qualification-results/InsightsList";
 import { RecommendationsList } from "./qualification-results/RecommendationsList";
-import { Button } from "@/components/ui/button";
-import { MessageCircle } from "lucide-react";
-import { VoiceQualificationDiscussion } from "./VoiceQualificationDiscussion";
 
-interface QualificationResult {
-  score: number;
-  summary: string;
-  insights: string[];
-  recommendations: string[];
+interface QualificationResultsProps {
+  results: {
+    score: number;
+    summary: string;
+    insights: string[];
+    recommendations: string[];
+  };
 }
 
-export function QualificationResults({ results }: { results: QualificationResult }) {
-  const [isShowingDetails, setIsShowingDetails] = useState(false);
-  const { toast } = useToast();
-
-  const toggleDetails = () => {
-    setIsShowingDetails(!isShowingDetails);
-  };
-
+export function QualificationResults({ results }: QualificationResultsProps) {
   return (
-    <Card className="w-full max-w-2xl mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800 transition-all duration-300 hover:shadow-lg animate-slideUp">
-      <div className="space-y-6">
+    <div className="space-y-8">
+      <Card className="p-6">
         <ScoreDisplay score={results.score} summary={results.summary} />
-        
-        <VoiceQualificationDiscussion results={results} />
-        
-        <Button 
-          onClick={toggleDetails} 
-          variant="outline"
-          className="w-full"
-        >
-          <MessageCircle className="mr-2 h-4 w-4" />
-          {isShowingDetails ? "Hide Details" : "Show Details"}
-        </Button>
-        
-        {isShowingDetails && (
-          <div className="space-y-4 animate-fadeIn">
-            <InsightsList insights={results.insights} />
-            <RecommendationsList recommendations={results.recommendations} />
-          </div>
-        )}
+      </Card>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <InsightsList insights={results.insights} />
+        <RecommendationsList recommendations={results.recommendations} />
       </div>
-    </Card>
+
+      <Card className="p-6">
+        <VoiceQualificationDiscussion results={results} />
+      </Card>
+    </div>
   );
 }
