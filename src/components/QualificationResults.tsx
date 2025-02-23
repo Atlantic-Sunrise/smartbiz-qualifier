@@ -18,16 +18,18 @@ export function QualificationResults({ results }: { results: QualificationResult
   const [isReading, setIsReading] = useState(false);
   const { toast } = useToast();
   
+  // Initialize ElevenLabs conversation with Sarah's voice
   const conversation = useConversation({
     overrides: {
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
+        voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
+        modelId: "eleven_monolingual_v1"
       }
     }
   });
 
   useEffect(() => {
-    // Initialize ElevenLabs when component mounts
+    // Check for ElevenLabs API key on component mount
     const apiKey = localStorage.getItem('eleven_labs_key');
     if (!apiKey) {
       toast({
@@ -35,6 +37,9 @@ export function QualificationResults({ results }: { results: QualificationResult
         description: "Please add your ElevenLabs API key in the settings to use text-to-speech.",
         variant: "destructive",
       });
+    } else {
+      // Set the API key for ElevenLabs
+      window.localStorage.setItem('elevenlabs_api_key', apiKey);
     }
   }, [toast]);
 
@@ -52,7 +57,8 @@ export function QualificationResults({ results }: { results: QualificationResult
 
   const readResults = async () => {
     try {
-      if (!window.localStorage.getItem('eleven_labs_key')) {
+      const apiKey = window.localStorage.getItem('eleven_labs_key');
+      if (!apiKey) {
         toast({
           title: "API Key Missing",
           description: "Please add your ElevenLabs API key first",
@@ -74,10 +80,12 @@ export function QualificationResults({ results }: { results: QualificationResult
         ${results.recommendations.join(". ")}
       `;
 
+      // Start the TTS session with the correct parameters
       await conversation.startSession({
+        agentId: "text-to-speech", // Using text-to-speech mode
         text: textToRead,
-        agentId: "esv2_JRhPgLPBvdLpJG2TXeTr" // Default agent ID for text-to-speech
       });
+
     } catch (error) {
       console.error('Text-to-speech error:', error);
       toast({
