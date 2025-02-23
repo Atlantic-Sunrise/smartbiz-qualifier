@@ -18,6 +18,10 @@ interface BusinessFormData {
   challenges: string;
 }
 
+interface AIResponse {
+  response: string;
+}
+
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
   const { register, handleSubmit, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
@@ -47,18 +51,18 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
         "recommendations": ["rec1", "rec2", "rec3"]
       }`;
 
-      const result = await fal.subscribe("fal-ai/llama-2-70b-chat", {
+      const result = await fal.subscribe("fal-ai/text-generation-base", {
         input: {
           prompt: prompt
         },
-      });
+      }) as { response: string };
 
       let analysis;
       try {
-        analysis = JSON.parse(result.text);
+        analysis = JSON.parse(result.response);
       } catch (e) {
         // If parsing fails, try to extract JSON from the text response
-        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        const jsonMatch = result.response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
         } else {
