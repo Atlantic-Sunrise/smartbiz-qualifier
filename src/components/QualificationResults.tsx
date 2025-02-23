@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ export function QualificationResults({ results }: { results: QualificationResult
         firstMessage: "I've analyzed your lead qualification results. Would you like me to explain any specific aspect of the analysis?",
       },
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL",
+        voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
         modelId: "eleven_monolingual_v1",
         apiKey: apiKey || '',
       },
@@ -113,7 +114,8 @@ export function QualificationResults({ results }: { results: QualificationResult
       console.log('Starting conversation with API key present');
       setIsConversing(true);
       
-      await conversation.startSession();
+      // Pass an empty object as the required argument
+      await conversation.startSession({});
 
     } catch (error) {
       console.error('Conversation error:', error);
