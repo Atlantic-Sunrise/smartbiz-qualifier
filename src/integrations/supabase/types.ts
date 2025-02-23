@@ -58,26 +58,35 @@ export type Database = {
       }
       profiles: {
         Row: {
+          annual_revenue: string | null
           business_services: string | null
           company_name: string | null
           created_at: string
+          employee_count: string | null
           id: string
+          industry: string | null
           job_title: string | null
           updated_at: string
         }
         Insert: {
+          annual_revenue?: string | null
           business_services?: string | null
           company_name?: string | null
           created_at?: string
+          employee_count?: string | null
           id: string
+          industry?: string | null
           job_title?: string | null
           updated_at?: string
         }
         Update: {
+          annual_revenue?: string | null
           business_services?: string | null
           company_name?: string | null
           created_at?: string
+          employee_count?: string | null
           id?: string
+          industry?: string | null
           job_title?: string | null
           updated_at?: string
         }
