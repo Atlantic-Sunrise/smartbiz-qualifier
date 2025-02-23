@@ -48,6 +48,28 @@ const TOP_INDUSTRIES = [
   "Manufacturing & Production"
 ];
 
+const EMPLOYEE_RANGES = [
+  "1-4 employees",
+  "5-9 employees",
+  "10-19 employees",
+  "20-49 employees",
+  "50-99 employees",
+  "100-249 employees",
+  "250-499 employees",
+  "500+ employees"
+];
+
+const REVENUE_RANGES = [
+  "Under $100,000",
+  "$100,000 - $499,999",
+  "$500,000 - $999,999",
+  "$1M - $4.99M",
+  "$5M - $9.99M",
+  "$10M - $19.99M",
+  "$20M - $49.99M",
+  "$50M+"
+];
+
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
@@ -219,6 +241,14 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     setValue("industry", value);
   };
 
+  const onEmployeeCountSelect = (value: string) => {
+    setValue("employeeCount", value);
+  };
+
+  const onRevenueSelect = (value: string) => {
+    setValue("annualRevenue", value);
+  };
+
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
@@ -362,12 +392,18 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
 
             <div>
               <Label htmlFor="employeeCount">Number of Employees</Label>
-              <Input
-                id="employeeCount"
-                {...register("employeeCount", { required: "Employee count is required" })}
-                className="mt-1"
-                placeholder="e.g., 1-10, 11-50, 51-200"
-              />
+              <Select onValueChange={onEmployeeCountSelect}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select employee range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYEE_RANGES.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.employeeCount && (
                 <p className="text-red-500 text-sm mt-1">{errors.employeeCount.message}</p>
               )}
@@ -375,12 +411,18 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
 
             <div>
               <Label htmlFor="annualRevenue">Annual Revenue</Label>
-              <Input
-                id="annualRevenue"
-                {...register("annualRevenue", { required: "Annual revenue is required" })}
-                className="mt-1"
-                placeholder="e.g., $100K-$500K, $500K-$1M"
-              />
+              <Select onValueChange={onRevenueSelect}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select revenue range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REVENUE_RANGES.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.annualRevenue && (
                 <p className="text-red-500 text-sm mt-1">{errors.annualRevenue.message}</p>
               )}
