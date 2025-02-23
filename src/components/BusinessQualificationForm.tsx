@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import * as fal from "@fal-ai/serverless-client";
 import { useConversation } from "@11labs/react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   Select,
   SelectContent,
@@ -24,10 +24,6 @@ interface BusinessFormData {
   annualRevenue: string;
   website: string;
   challenges: string;
-}
-
-interface AIResponse {
-  response: string;
 }
 
 const TOP_INDUSTRIES = [
@@ -166,9 +162,13 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
-      fal.config({
-        credentials: localStorage.getItem('fal_api_key')
-      });
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        throw new Error("Gemini API key not found");
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
       const prompt = `As an expert business analyst, analyze this lead and provide a qualification score (0-100) and detailed insights.
       Company: ${data.companyName}
@@ -186,17 +186,15 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
         "recommendations": ["rec1", "rec2", "rec3"]
       }`;
 
-      const result = await fal.subscribe("fal-ai/gpt-3.5-turbo", {
-        input: {
-          prompt: prompt
-        },
-      }) as AIResponse;
-
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
       let analysis;
       try {
-        analysis = JSON.parse(result.response);
+        analysis = JSON.parse(text);
       } catch (e) {
-        const jsonMatch = result.response.match(/\{[\s\S]*\}/);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
         } else {
