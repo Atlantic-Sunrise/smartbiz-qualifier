@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QualificationResult {
   score: number;
@@ -29,10 +30,28 @@ export function QualificationResults({ results }: { results: QualificationResult
   });
 
   useEffect(() => {
-    const apiKey = localStorage.getItem('eleven_labs_key');
-    if (apiKey) {
-      localStorage.setItem('elevenlabs_api_key', apiKey);
-    }
+    const fetchApiKey = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('api_keys')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+        
+        if (data?.api_keys?.eleven_labs_key) {
+          localStorage.setItem('elevenlabs_api_key', data.api_keys.eleven_labs_key);
+        }
+      } catch (error) {
+        console.error('Error fetching API key:', error);
+      }
+    };
+
+    fetchApiKey();
   }, []);
 
   const getScoreColor = (score: number) => {
@@ -48,17 +67,38 @@ export function QualificationResults({ results }: { results: QualificationResult
   };
 
   const readResults = async () => {
-    const apiKey = localStorage.getItem('elevenlabs_api_key');
-    if (!apiKey) {
-      toast({
-        title: "API Key Missing",
-        description: "Please add your ElevenLabs API key in the settings",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "User not authenticated",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('api_keys')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      const apiKey = data?.api_keys?.eleven_labs_key;
+      if (!apiKey) {
+        toast({
+          title: "API Key Missing",
+          description: "Please add your ElevenLabs API key in the settings",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Set the API key in localStorage for the ElevenLabs library
+      localStorage.setItem('elevenlabs_api_key', apiKey);
+      
       setIsReading(true);
       
       const textToRead = `
