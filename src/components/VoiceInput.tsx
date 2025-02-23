@@ -18,7 +18,7 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
   const conversation = useConversation({
     overrides: {
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL"
+        voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
       }
     }
   });
@@ -34,25 +34,39 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       recognition.continuous = false;
       recognition.interimResults = false;
 
+      // First, speak the question using ElevenLabs
       conversation.startSession({
-        text: question
+        text: `${question} You can speak your answer, type it in the field, or use the dropdown if available. Please speak now.`
       });
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
+      // Wait for the TTS to finish before starting recognition
+      setTimeout(() => {
+        recognition.onstart = () => {
+          setIsListening(true);
+          console.log("Speech recognition started");
+        };
 
-      recognition.onend = () => {
-        setIsListening(false);
-        resolve();
-      };
+        recognition.onend = () => {
+          setIsListening(false);
+          console.log("Speech recognition ended");
+          resolve();
+        };
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onFieldUpdate(field, transcript);
-      };
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          onFieldUpdate(field, transcript);
+          console.log(`Recognized text: ${transcript}`);
+        };
 
-      recognition.start();
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+          setIsListening(false);
+          resolve();
+        };
+
+        // Start listening after a short delay to ensure the TTS has finished
+        recognition.start();
+      }, 1000); // Adjust this delay based on the length of the TTS message
     });
   };
 
@@ -75,12 +89,27 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       return;
     }
 
+    // Initial greeting
+    conversation.startSession({
+      text: "Hello! I'll help you fill out this form. I'll ask you questions one by one, and you can either speak your answers, type them in, or use the dropdown menus where available. Let's begin!"
+    });
+
+    // Wait for the greeting to finish
+    await new Promise(resolve => setTimeout(resolve, 4000));
+
     const fields: (keyof BusinessFormData)[] = ['companyName', 'industry', 'employeeCount', 'annualRevenue', 'website', 'challenges'];
     
     for (const field of fields) {
       setCurrentField(field);
       await askQuestion(questions[field], field);
+      // Add a pause between questions
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
+
+    // Final message
+    conversation.startSession({
+      text: "Thank you for providing all the information. The form is now complete!"
+    });
 
     setCurrentField(null);
   };
@@ -92,7 +121,7 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
         onClick={startVoiceInteraction}
         className="w-full mb-4"
         variant="outline"
-        disabled={!('webkitSpeechRecognition' in window)}
+        disabled={!('webkitSpeechRecognition' in window) || isListening}
       >
         {isListening ? (
           <>
@@ -101,8 +130,8 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
           </>
         ) : (
           <>
-            <MicOff className="w-4 h-4 mr-2" />
-            Start Voice Interview
+            {currentField ? <Mic className="w-4 h-4 mr-2" /> : <MicOff className="w-4 h-4 mr-2" />}
+            {currentField ? "Speaking..." : "Start Voice Interview"}
           </>
         )}
       </Button>
