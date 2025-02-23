@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertTriangle, Lightbulb, Volume2, VolumeX } from "lucide-react";
+import { Check, AlertTriangle, Lightbulb, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useConversation } from "@11labs/react";
@@ -16,16 +16,42 @@ interface QualificationResult {
 }
 
 export function QualificationResults({ results }: { results: QualificationResult }) {
-  const [isReading, setIsReading] = useState(false);
+  const [isConversing, setIsConversing] = useState(false);
   const { toast } = useToast();
   
-  // Initialize ElevenLabs conversation with specific TTS settings
+  // Initialize ElevenLabs conversation
   const conversation = useConversation({
     overrides: {
+      agent: {
+        prompt: {
+          prompt: `You are an AI business analyst assistant. You have analyzed a business lead with the following results:
+          Score: ${results.score}/100
+          Summary: ${results.summary}
+          Key Insights: ${results.insights.join(". ")}
+          Recommendations: ${results.recommendations.join(". ")}
+          
+          Help the user understand these results and provide additional insights based on their questions.
+          Be concise but informative in your responses.`
+        },
+        firstMessage: "I've analyzed your lead qualification results. Would you like me to explain any specific aspect of the analysis?",
+        language: "en",
+      },
       tts: {
         voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
         modelId: "eleven_monolingual_v1"
       }
+    },
+    onMessage: (message) => {
+      console.log('Received message:', message);
+    },
+    onError: (error) => {
+      console.error('Conversation error:', error);
+      toast({
+        title: "Error",
+        description: "There was an error with the conversation. Please try again.",
+        variant: "destructive",
+      });
+      setIsConversing(false);
     }
   });
 
@@ -66,7 +92,7 @@ export function QualificationResults({ results }: { results: QualificationResult
     return "bg-red-100 text-red-800";
   };
 
-  const readResults = async () => {
+  const startConversation = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -96,45 +122,39 @@ export function QualificationResults({ results }: { results: QualificationResult
         return;
       }
 
-      // Set the API key in localStorage for the ElevenLabs library
       localStorage.setItem('elevenlabs_api_key', apiKey);
+      setIsConversing(true);
       
-      setIsReading(true);
-      
-      const textToRead = `
-        Lead Qualification Score: ${results.score} out of 100.
-        ${results.summary}
-        
-        Key Insights:
-        ${results.insights.join(". ")}
-        
-        Recommendations:
-        ${results.recommendations.join(". ")}
-      `;
-
       await conversation.startSession({
-        text: textToRead,
-        agentId: "text-to-speech",
+        agentId: "text-to-speech", // Replace with your actual agent ID from ElevenLabs
         onError: (error) => {
-          console.error('Text-to-speech error:', error);
+          console.error('Conversation error:', error);
           toast({
             title: "Error",
-            description: "Failed to read results. Please check your API key and try again.",
+            description: "Failed to start conversation. Please check your API key and try again.",
             variant: "destructive",
           });
-          setIsReading(false);
+          setIsConversing(false);
         },
       });
 
     } catch (error) {
-      console.error('Text-to-speech error:', error);
+      console.error('Conversation error:', error);
       toast({
         title: "Error",
-        description: "Failed to read results. Please check your API key and try again.",
+        description: "Failed to start conversation. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsReading(false);
+      setIsConversing(false);
+    }
+  };
+
+  const stopConversation = async () => {
+    try {
+      await conversation.endSession();
+      setIsConversing(false);
+    } catch (error) {
+      console.error('Error ending conversation:', error);
     }
   };
 
@@ -152,20 +172,19 @@ export function QualificationResults({ results }: { results: QualificationResult
           <p className="mt-4 text-gray-600 dark:text-gray-300">{results.summary}</p>
           
           <Button
-            onClick={readResults}
+            onClick={isConversing ? stopConversation : startConversation}
             variant="outline"
             className="mt-4"
-            disabled={isReading}
           >
-            {isReading ? (
+            {isConversing ? (
               <>
-                <Volume2 className="mr-2 h-4 w-4 animate-pulse" />
-                Reading Results...
+                <Mic className="mr-2 h-4 w-4 animate-pulse text-red-500" />
+                Stop Conversation
               </>
             ) : (
               <>
-                <VolumeX className="mr-2 h-4 w-4" />
-                Read Results Aloud
+                <MicOff className="mr-2 h-4 w-4" />
+                Discuss Results with AI
               </>
             )}
           </Button>
