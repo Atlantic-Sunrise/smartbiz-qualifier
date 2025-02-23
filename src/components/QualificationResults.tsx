@@ -1,9 +1,9 @@
 
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, AlertTriangle, Lightbulb, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ export function QualificationResults({ results }: { results: QualificationResult
   const [isConversing, setIsConversing] = useState(false);
   const { toast } = useToast();
   
-  // Initialize ElevenLabs conversation
+  // Initialize ElevenLabs conversation with more detailed configuration
   const conversation = useConversation({
     overrides: {
       agent: {
@@ -38,7 +38,11 @@ export function QualificationResults({ results }: { results: QualificationResult
       },
       tts: {
         voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
-        modelId: "eleven_monolingual_v1"
+        modelId: "eleven_monolingual_v1",
+      },
+      connection: {
+        timeout: 60000, // Increase timeout to 60 seconds
+        reconnect: true,
       }
     },
     onMessage: (message) => {
@@ -48,15 +52,16 @@ export function QualificationResults({ results }: { results: QualificationResult
       console.error('Conversation error:', error);
       toast({
         title: "Error",
-        description: "There was an error with the conversation. Please try again.",
+        description: "There was an error with the conversation. Please check your API key and try again.",
         variant: "destructive",
       });
       setIsConversing(false);
     }
   });
 
+  // Check for API key on component mount
   useEffect(() => {
-    const fetchApiKey = async () => {
+    const checkApiKey = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -71,26 +76,15 @@ export function QualificationResults({ results }: { results: QualificationResult
         
         if (data?.api_keys?.eleven_labs_key) {
           localStorage.setItem('elevenlabs_api_key', data.api_keys.eleven_labs_key);
+          localStorage.setItem('eleven_labs_key', data.api_keys.eleven_labs_key); // Set both key variations
         }
       } catch (error) {
-        console.error('Error fetching API key:', error);
+        console.error('Error checking API key:', error);
       }
     };
 
-    fetchApiKey();
+    checkApiKey();
   }, []);
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    return "text-red-500";
-  };
-
-  const getBadgeVariant = (score: number) => {
-    if (score >= 80) return "bg-green-100 text-green-800";
-    if (score >= 60) return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
-  };
 
   const startConversation = async () => {
     try {
@@ -123,10 +117,11 @@ export function QualificationResults({ results }: { results: QualificationResult
       }
 
       localStorage.setItem('elevenlabs_api_key', apiKey);
+      localStorage.setItem('eleven_labs_key', apiKey); // Set both key variations
       setIsConversing(true);
       
       await conversation.startSession({
-        agentId: "tHdevlgucdu7DHHmRaUO", // Your ElevenLabs agent ID
+        agentId: "tHdevlgucdu7DHHmRaUO",
         onError: (error) => {
           console.error('Conversation error:', error);
           toast({
@@ -152,10 +147,23 @@ export function QualificationResults({ results }: { results: QualificationResult
   const stopConversation = async () => {
     try {
       await conversation.endSession();
-      setIsConversing(false);
     } catch (error) {
       console.error('Error ending conversation:', error);
+    } finally {
+      setIsConversing(false);
     }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    return "text-red-500";
+  };
+
+  const getBadgeVariant = (score: number) => {
+    if (score >= 80) return "bg-green-100 text-green-800";
+    if (score >= 60) return "bg-yellow-100 text-yellow-800";
+    return "bg-red-100 text-red-800";
   };
 
   return (
