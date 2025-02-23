@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ interface QualificationResult {
 
 export function QualificationResults({ results }: { results: QualificationResult }) {
   const [isConversing, setIsConversing] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const { toast } = useToast();
   
   const conversation = useConversation({
@@ -34,9 +36,9 @@ export function QualificationResults({ results }: { results: QualificationResult
         firstMessage: "I've analyzed your lead qualification results. Would you like me to explain any specific aspect of the analysis?",
       },
       tts: {
-        voiceId: "21m00Tcm4TlvDq8ikWAM", // Change to default voice
+        voiceId: "21m00Tcm4TlvDq8ikWAM",
         modelId: "eleven_monolingual_v1",
-        apiKey: localStorage.getItem('eleven_labs_key') || '', // Directly use API key
+        apiKey: apiKey || '',
       },
     },
     onMessage: (message) => {
@@ -56,6 +58,15 @@ export function QualificationResults({ results }: { results: QualificationResult
   useEffect(() => {
     const checkApiKey = async () => {
       try {
+        // First try to get from localStorage
+        const storedKey = localStorage.getItem('eleven_labs_key');
+        if (storedKey) {
+          console.log('Found API key in localStorage');
+          setApiKey(storedKey);
+          return;
+        }
+
+        // If not in localStorage, try to get from Supabase
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           console.log('No user found');
@@ -74,8 +85,10 @@ export function QualificationResults({ results }: { results: QualificationResult
         }
         
         if (data?.api_keys?.eleven_labs_key) {
-          console.log('Setting API key in localStorage');
-          localStorage.setItem('eleven_labs_key', data.api_keys.eleven_labs_key);
+          console.log('Setting API key from Supabase');
+          const newKey = data.api_keys.eleven_labs_key;
+          localStorage.setItem('eleven_labs_key', newKey);
+          setApiKey(newKey);
         } else {
           console.log('No API key found in profile');
         }
@@ -89,7 +102,6 @@ export function QualificationResults({ results }: { results: QualificationResult
 
   const startConversation = async () => {
     try {
-      const apiKey = localStorage.getItem('eleven_labs_key');
       if (!apiKey) {
         toast({
           title: "API Key Missing",
