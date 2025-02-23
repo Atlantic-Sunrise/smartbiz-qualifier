@@ -13,6 +13,7 @@ interface VoiceInputProps {
 export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const { toast } = useToast();
+  const [recognition, setRecognition] = useState<any>(null);
   
   const conversation = useConversation({
     overrides: {
@@ -21,6 +22,12 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       }
     }
   });
+
+  const stopVoiceInput = () => {
+    if (recognition) {
+      recognition.stop();
+    }
+  };
 
   const startVoiceInput = async () => {
     if (!window.localStorage.getItem('eleven_labs_key')) {
@@ -41,9 +48,11 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       return;
     }
 
-    const recognition = new window.webkitSpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    const recognitionInstance = new window.webkitSpeechRecognition();
+    recognitionInstance.continuous = true;
+    recognitionInstance.interimResults = true;
+
+    let finalTranscript = '';
 
     // First, speak the question using ElevenLabs
     conversation.startSession({
@@ -52,48 +61,63 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
 
     // Wait for the TTS to finish before starting recognition
     setTimeout(() => {
-      recognition.onstart = () => {
+      recognitionInstance.onstart = () => {
         setIsListening(true);
         console.log("Speech recognition started");
       };
 
-      recognition.onend = () => {
+      recognitionInstance.onend = () => {
         setIsListening(false);
         console.log("Speech recognition ended");
+        if (finalTranscript) {
+          onFieldUpdate(finalTranscript);
+        }
       };
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        onFieldUpdate(transcript);
-        console.log(`Recognized text: ${transcript}`);
+      recognitionInstance.onresult = (event: any) => {
+        let interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + ' ';
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        // Update the input field with the current transcript
+        onFieldUpdate(finalTranscript + interimTranscript);
       };
 
-      recognition.onerror = (event) => {
+      recognitionInstance.onerror = (event) => {
         console.error("Speech recognition error:", event.error);
         setIsListening(false);
+        recognitionInstance.stop();
       };
 
-      recognition.start();
+      setRecognition(recognitionInstance);
+      recognitionInstance.start();
     }, 1000);
   };
 
   return (
     <Button 
       type="button" 
-      onClick={startVoiceInput}
+      onClick={isListening ? stopVoiceInput : startVoiceInput}
       variant="outline"
       className="w-full flex items-center justify-center gap-2"
-      disabled={!('webkitSpeechRecognition' in window) || isListening}
+      disabled={!('webkitSpeechRecognition' in window)}
     >
       {isListening ? (
         <>
           <Mic className="h-4 w-4 animate-pulse text-red-500" />
-          Listening...
+          Click When Finished Speaking
         </>
       ) : (
         <>
           <MicOff className="h-4 w-4" />
-          Click to Speak Your Business Challenges
+          Click to Start Speaking
         </>
       )}
     </Button>
