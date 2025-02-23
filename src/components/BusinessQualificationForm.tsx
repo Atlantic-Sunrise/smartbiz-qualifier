@@ -55,6 +55,15 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
         variant: "destructive",
       });
     }
+
+    // Check if speech recognition is available
+    if (!('webkitSpeechRecognition' in window)) {
+      toast({
+        title: "Speech Recognition Not Available",
+        description: "Your browser doesn't support speech recognition. Please use a Chromium-based browser.",
+        variant: "destructive",
+      });
+    }
   }, []);
 
   const startVoiceInteraction = async () => {
@@ -62,6 +71,15 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
       toast({
         title: "API Key Missing",
         description: "Please add your ElevenLabs API key first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!('webkitSpeechRecognition' in window)) {
+      toast({
+        title: "Speech Recognition Not Available",
+        description: "Your browser doesn't support speech recognition. Please use a Chromium-based browser.",
         variant: "destructive",
       });
       return;
@@ -79,6 +97,11 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
 
   const askQuestion = async (question: string, field: keyof BusinessFormData) => {
     return new Promise<void>((resolve) => {
+      if (!('webkitSpeechRecognition' in window)) {
+        resolve();
+        return;
+      }
+
       const recognition = new window.webkitSpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
@@ -170,6 +193,7 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
           onClick={startVoiceInteraction}
           className="w-full mb-4"
           variant="outline"
+          disabled={!('webkitSpeechRecognition' in window)}
         >
           {isListening ? (
             <>
