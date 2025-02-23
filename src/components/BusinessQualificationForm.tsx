@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Mic, MicOff } from "lucide-react";
+import { Loader2, Mic, MicOff, Image as ImageIcon } from "lucide-react";
 import * as fal from "@fal-ai/serverless-client";
 import { useConversation } from "@11labs/react";
 
@@ -24,19 +23,54 @@ interface AIResponse {
 }
 
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<BusinessFormData>();
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [currentField, setCurrentField] = useState<keyof BusinessFormData | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const { toast } = useToast();
   
-  const conversation = useConversation({
-    overrides: {
-      tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL" // Using Sarah's voice
+  const industry = watch("industry");
+
+  const generateBusinessImage = async (industry: string) => {
+    if (!industry) return;
+    
+    setIsGeneratingImage(true);
+    try {
+      fal.config({
+        credentials: localStorage.getItem('fal_api_key')
+      });
+
+      const result = await fal.subscribe("stable-diffusion-xl-v1", {
+        input: {
+          prompt: `A professional, modern business illustration representing the ${industry} industry, corporate style, minimalist, clean design, business concept`,
+          negative_prompt: "text, words, logos, watermark",
+          num_inference_steps: 30,
+          guidance_scale: 7.5
+        }
+      });
+
+      if (result.images?.[0]?.url) {
+        setGeneratedImage(result.images[0].url);
       }
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate industry image. Please check your API key.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
     }
-  });
+  };
+
+  useEffect(() => {
+    if (industry && industry.length > 2) {
+      generateBusinessImage(industry);
+    }
+  }, [industry]);
 
   const questions = {
     companyName: "What is your company name?",
@@ -46,25 +80,6 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     website: "What is your website address? You can skip this if you don't have one.",
     challenges: "What are your main business challenges?"
   };
-
-  useEffect(() => {
-    if (!window.localStorage.getItem('eleven_labs_key')) {
-      toast({
-        title: "ElevenLabs API Key Required",
-        description: "Please add your ElevenLabs API key in the settings to enable voice interaction.",
-        variant: "destructive",
-      });
-    }
-
-    // Check if speech recognition is available
-    if (!('webkitSpeechRecognition' in window)) {
-      toast({
-        title: "Speech Recognition Not Available",
-        description: "Your browser doesn't support speech recognition. Please use a Chromium-based browser.",
-        variant: "destructive",
-      });
-    }
-  }, []);
 
   const startVoiceInteraction = async () => {
     if (!window.localStorage.getItem('eleven_labs_key')) {
@@ -106,7 +121,6 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
       recognition.continuous = false;
       recognition.interimResults = false;
 
-      // First, speak the question
       conversation.startSession({
         text: question
       });
@@ -132,7 +146,6 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
-      // Initialize fal client
       fal.config({
         credentials: localStorage.getItem('fal_api_key')
       });
@@ -163,7 +176,6 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
       try {
         analysis = JSON.parse(result.response);
       } catch (e) {
-        // If parsing fails, try to extract JSON from the text response
         const jsonMatch = result.response.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           analysis = JSON.parse(jsonMatch[0]);
@@ -213,6 +225,21 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
           </div>
         )}
       </div>
+
+      {generatedImage && (
+        <div className="mb-6 relative rounded-lg overflow-hidden">
+          <img 
+            src={generatedImage} 
+            alt="Industry visualization" 
+            className="w-full h-48 object-cover rounded-lg"
+          />
+          {isGeneratingImage && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-white" />
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
