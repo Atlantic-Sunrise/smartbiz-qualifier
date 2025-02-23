@@ -1,7 +1,6 @@
-
 export const TOP_INDUSTRIES = [
   "Technology & Software",
-  "Retail & E-commerce",
+  "Retail & E-commerce", 
   "Healthcare & Medical",
   "Food & Restaurant",
   "Professional Services",
@@ -9,7 +8,8 @@ export const TOP_INDUSTRIES = [
   "Construction & Contracting",
   "Marketing & Digital Services",
   "Education & Training",
-  "Manufacturing & Production"
+  "Manufacturing & Production",
+  "Media & Content Creation"
 ];
 
 export const EMPLOYEE_RANGES = [
