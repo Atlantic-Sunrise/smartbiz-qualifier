@@ -18,7 +18,7 @@ export function QualificationResults({ results }: { results: QualificationResult
   const [isReading, setIsReading] = useState(false);
   const { toast } = useToast();
   
-  // Initialize ElevenLabs conversation
+  // Initialize ElevenLabs conversation with specific TTS settings
   const conversation = useConversation({
     overrides: {
       tts: {
