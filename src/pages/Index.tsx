@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BusinessQualificationForm } from "@/components/BusinessQualificationForm";
 import { QualificationResults } from "@/components/QualificationResults";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [results, setResults] = useState<any>(null);
@@ -14,6 +16,20 @@ const Index = () => {
     !localStorage.getItem('gemini_api_key') || !localStorage.getItem('eleven_labs_key')
   );
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to sign out",
+      });
+    } else {
+      navigate("/auth");
+    }
+  };
   
   const handleApiKeySubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -35,6 +51,11 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container py-12">
+        <div className="flex justify-end mb-4">
+          <Button variant="outline" onClick={handleLogout}>
+            Sign Out
+          </Button>
+        </div>
         <div className="text-center mb-12 animate-fadeIn">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
             AI Business Lead Qualifier
