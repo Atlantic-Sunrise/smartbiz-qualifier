@@ -1,11 +1,10 @@
 
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Volume2 } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { questions } from "@/constants/businessFormConstants";
-import { Slider } from "@/components/ui/slider";
 
 interface VoiceInputProps {
   onFieldUpdate: (value: string) => void;
@@ -13,8 +12,6 @@ interface VoiceInputProps {
 
 export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
-  const [showVolumeControl, setShowVolumeControl] = useState(false);
-  const [volume, setVolume] = useState(1);
   const { toast } = useToast();
 
   const conversation = useConversation({
@@ -72,12 +69,6 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     }
   };
 
-  const handleVolumeChange = async (value: number[]) => {
-    const newVolume = value[0];
-    setVolume(newVolume);
-    await conversation.setVolume({ volume: newVolume });
-  };
-
   const startVoiceInput = async () => {
     if (!window.localStorage.getItem('eleven_labs_key')) {
       toast({
@@ -133,28 +124,6 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
           </>
         )}
       </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setShowVolumeControl(!showVolumeControl)}
-        className="w-full"
-      >
-        <Volume2 className="h-4 w-4 mr-2" />
-        Adjust Volume
-      </Button>
-
-      {showVolumeControl && (
-        <div className="p-4 border rounded-md">
-          <Slider
-            value={[volume]}
-            min={0}
-            max={1}
-            step={0.1}
-            onValueChange={handleVolumeChange}
-          />
-        </div>
-      )}
     </div>
   );
 }
