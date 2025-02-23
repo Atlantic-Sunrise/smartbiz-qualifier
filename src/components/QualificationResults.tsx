@@ -29,19 +29,11 @@ export function QualificationResults({ results }: { results: QualificationResult
   });
 
   useEffect(() => {
-    // Initialize ElevenLabs API key
     const apiKey = localStorage.getItem('eleven_labs_key');
     if (apiKey) {
-      // Set the correct API key format for ElevenLabs library
       localStorage.setItem('elevenlabs_api_key', apiKey);
-    } else {
-      toast({
-        title: "ElevenLabs API Key Required",
-        description: "Please add your ElevenLabs API key in the settings to use text-to-speech.",
-        variant: "destructive",
-      });
     }
-  }, [toast]);
+  }, []);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-500";
@@ -56,17 +48,17 @@ export function QualificationResults({ results }: { results: QualificationResult
   };
 
   const readResults = async () => {
-    try {
-      const apiKey = localStorage.getItem('elevenlabs_api_key');
-      if (!apiKey) {
-        toast({
-          title: "API Key Missing",
-          description: "Please add your ElevenLabs API key in the settings",
-          variant: "destructive",
-        });
-        return;
-      }
+    const apiKey = localStorage.getItem('elevenlabs_api_key');
+    if (!apiKey) {
+      toast({
+        title: "API Key Missing",
+        description: "Please add your ElevenLabs API key in the settings",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    try {
       setIsReading(true);
       
       const textToRead = `
@@ -81,8 +73,17 @@ export function QualificationResults({ results }: { results: QualificationResult
       `;
 
       await conversation.startSession({
-        agentId: "text-to-speech",
         text: textToRead,
+        agentId: "text-to-speech",
+        onError: (error) => {
+          console.error('Text-to-speech error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to read results. Please check your API key and try again.",
+            variant: "destructive",
+          });
+          setIsReading(false);
+        },
       });
 
     } catch (error) {
