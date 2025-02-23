@@ -184,11 +184,12 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
             <div>
               <Label htmlFor="challenges">Main Business Challenges</Label>
               <div className="space-y-2">
-                <Input
+                <textarea
                   id="challenges"
                   {...register("challenges", { required: "Business challenges are required" })}
-                  className="mt-1"
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="Describe the main challenges faced by the business"
+                  rows={4}
                 />
                 <VoiceInput onFieldUpdate={handleVoiceInput} />
               </div>
