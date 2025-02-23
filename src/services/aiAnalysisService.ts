@@ -1,6 +1,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BusinessFormData } from "@/constants/businessFormConstants";
+import { supabase } from "@/integrations/supabase/client";
 
 export async function analyzeBusinessLead(data: BusinessFormData) {
   const apiKey = localStorage.getItem('gemini_api_key');
@@ -8,16 +9,35 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     throw new Error("Gemini API key not found");
   }
 
+  // Get the user's business profile
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user?.id)
+    .single();
+
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-  const prompt = `As an expert business analyst, analyze this lead and provide a qualification score (0-100) and detailed insights.
+  const prompt = `As an expert business analyst, analyze this lead in the context of the qualifying business.
+
+    Qualifying Business:
+    Company: ${profile?.company_name}
+    Industry: ${profile?.industry}
+    Size: ${profile?.employee_count}
+    Revenue: ${profile?.annual_revenue}
+    Challenges: ${profile?.main_challenges}
+    
+    Lead to Qualify:
     Company: ${data.companyName}
     Industry: ${data.industry}
     Employees: ${data.employeeCount}
     Annual Revenue: ${data.annualRevenue}
     Website: ${data.website}
     Main Challenges: ${data.challenges}
+    
+    Consider factors like industry alignment, business size compatibility, potential synergies, and whether the lead's challenges align with what we can solve.
     
     Provide a JSON response with this exact format:
     {
