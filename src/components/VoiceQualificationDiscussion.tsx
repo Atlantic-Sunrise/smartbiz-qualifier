@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Volume2 } from "lucide-react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 
 interface VoiceQualificationDiscussionProps {
@@ -19,6 +19,7 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
   const [isListening, setIsListening] = useState(false);
   const [showVolumeControl, setShowVolumeControl] = useState(false);
   const [volume, setVolume] = useState(1);
+  const [sessionActive, setSessionActive] = useState(false);
   const { toast } = useToast();
 
   const conversation = useConversation({
@@ -38,10 +39,12 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
         model: "eleven_turbo_v2"
       });
       setIsListening(true);
+      setSessionActive(true);
     },
     onDisconnect: () => {
       console.log("Disconnected from ElevenLabs");
       setIsListening(false);
+      setSessionActive(false);
     },
     onMessage: (message) => {
       console.log("Received message:", message);
@@ -54,8 +57,18 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
         variant: "destructive",
       });
       setIsListening(false);
+      setSessionActive(false);
     }
   });
+
+  useEffect(() => {
+    // Cleanup function to ensure session is ended when component unmounts
+    return () => {
+      if (sessionActive) {
+        conversation.endSession().catch(console.error);
+      }
+    };
+  }, [sessionActive, conversation]);
 
   const requestMicrophonePermission = async () => {
     try {
@@ -86,7 +99,7 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
 
   const startVoiceInteraction = async () => {
     // Check if API key exists in localStorage
-    const apiKey = window.localStorage.getItem('eleven_labs_key');
+    const apiKey = localStorage.getItem('eleven_labs_key') || localStorage.getItem('elevenlabs_api_key');
     if (!apiKey) {
       console.error("ElevenLabs API key not found");
       toast({
@@ -105,16 +118,17 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
     try {
       console.log("Attempting to start session...");
       await conversation.startSession({
-        agentId: "tHdevlgucdu7DHHmRaUO" // Using your agent ID for qualification discussion
+        agentId: "tHdevlgucdu7DHHmRaUO" // Make sure this matches your agent ID
       });
       console.log("Session started successfully");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to start voice session:", error);
       toast({
-        title: "Error",
-        description: "Failed to start voice interaction. Please check your API key and try again.",
+        title: "Connection Error",
+        description: error?.message || "Failed to connect to ElevenLabs. Please check your API key and agent ID.",
         variant: "destructive",
       });
+      setSessionActive(false);
     }
   };
 
@@ -123,6 +137,7 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
       console.log("Ending session...");
       await conversation.endSession();
       console.log("Session ended successfully");
+      setSessionActive(false);
     } catch (error) {
       console.error("Error ending session:", error);
     }
@@ -130,21 +145,33 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
 
   return (
     <div className="space-y-4">
+      <div className="p-4 border rounded-lg bg-muted mb-4">
+        <p className="text-sm text-muted-foreground">
+          To use voice interaction, ensure you have:
+          <br />
+          1. Added your ElevenLabs API key
+          <br />
+          2. Allowed microphone access
+          <br />
+          3. A stable internet connection
+        </p>
+      </div>
+
       <Button 
         type="button" 
         onClick={isListening ? stopVoiceInteraction : startVoiceInteraction}
-        variant="outline"
+        variant={isListening ? "destructive" : "default"}
         className="w-full flex items-center justify-center gap-2"
       >
         {isListening ? (
           <>
-            <Mic className="h-4 w-4 animate-pulse text-red-500" />
+            <Mic className="h-4 w-4 animate-pulse" />
             Click to End Discussion
           </>
         ) : (
           <>
             <MicOff className="h-4 w-4" />
-            Discuss Results with AI
+            Start Voice Discussion
           </>
         )}
       </Button>
@@ -173,4 +200,3 @@ export function VoiceQualificationDiscussion({ results }: VoiceQualificationDisc
     </div>
   );
 }
-
