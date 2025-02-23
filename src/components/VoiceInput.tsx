@@ -1,10 +1,11 @@
 
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Volume2 } from "lucide-react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { questions } from "@/constants/businessFormConstants";
+import { Slider } from "@/components/ui/slider";
 
 interface VoiceInputProps {
   onFieldUpdate: (value: string) => void;
@@ -12,21 +13,64 @@ interface VoiceInputProps {
 
 export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
+  const [showVolumeControl, setShowVolumeControl] = useState(false);
+  const [volume, setVolume] = useState(1);
   const { toast } = useToast();
-  const [recognition, setRecognition] = useState<any>(null);
-  
+
   const conversation = useConversation({
     overrides: {
       tts: {
         voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
       }
+    },
+    connectionDelay: {
+      android: 3000, // Recommended delay for Android
+      ios: 0,
+      default: 0
+    },
+    preferHeadphonesForIosDevices: true,
+    onConnect: () => {
+      console.log("Connected to ElevenLabs");
+      setIsListening(true);
+    },
+    onDisconnect: () => {
+      console.log("Disconnected from ElevenLabs");
+      setIsListening(false);
+    },
+    onMessage: (message) => {
+      if (message.type === 'transcript' && message.transcription) {
+        onFieldUpdate(message.transcription);
+      }
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      toast({
+        title: "Error",
+        description: "There was an error with the voice input. Please try again.",
+        variant: "destructive",
+      });
+      setIsListening(false);
     }
   });
 
-  const stopVoiceInput = () => {
-    if (recognition) {
-      recognition.stop();
+  const requestMicrophonePermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      return true;
+    } catch (error) {
+      toast({
+        title: "Microphone Access Required",
+        description: "Please allow microphone access to use voice input.",
+        variant: "destructive",
+      });
+      return false;
     }
+  };
+
+  const handleVolumeChange = async (value: number[]) => {
+    const newVolume = value[0];
+    setVolume(newVolume);
+    await conversation.setVolume({ volume: newVolume });
   };
 
   const startVoiceInput = async () => {
@@ -39,87 +83,74 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       return;
     }
 
-    if (!('webkitSpeechRecognition' in window)) {
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) return;
+
+    try {
+      // Start the conversation session
+      await conversation.startSession({
+        text: questions.challenges // Initial question to be spoken
+      });
+    } catch (error) {
+      console.error("Failed to start voice session:", error);
       toast({
-        title: "Speech Recognition Not Available",
-        description: "Your browser doesn't support speech recognition. Please use a Chromium-based browser.",
+        title: "Error",
+        description: "Failed to start voice input. Please try again.",
         variant: "destructive",
       });
-      return;
     }
+  };
 
-    const recognitionInstance = new window.webkitSpeechRecognition();
-    recognitionInstance.continuous = true;
-    recognitionInstance.interimResults = true;
-
-    let finalTranscript = '';
-
-    // First, speak the question using ElevenLabs
-    conversation.startSession({
-      text: questions.challenges
-    });
-
-    // Wait for the TTS to finish before starting recognition
-    setTimeout(() => {
-      recognitionInstance.onstart = () => {
-        setIsListening(true);
-        console.log("Speech recognition started");
-      };
-
-      recognitionInstance.onend = () => {
-        setIsListening(false);
-        console.log("Speech recognition ended");
-        if (finalTranscript) {
-          onFieldUpdate(finalTranscript);
-        }
-      };
-
-      recognitionInstance.onresult = (event: any) => {
-        let interimTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-        
-        // Update the input field with the current transcript
-        onFieldUpdate(finalTranscript + interimTranscript);
-      };
-
-      recognitionInstance.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListening(false);
-        recognitionInstance.stop();
-      };
-
-      setRecognition(recognitionInstance);
-      recognitionInstance.start();
-    }, 1000);
+  const stopVoiceInput = async () => {
+    try {
+      await conversation.endSession();
+    } catch (error) {
+      console.error("Error ending session:", error);
+    }
   };
 
   return (
-    <Button 
-      type="button" 
-      onClick={isListening ? stopVoiceInput : startVoiceInput}
-      variant="outline"
-      className="w-full flex items-center justify-center gap-2"
-      disabled={!('webkitSpeechRecognition' in window)}
-    >
-      {isListening ? (
-        <>
-          <Mic className="h-4 w-4 animate-pulse text-red-500" />
-          Click When Finished Speaking
-        </>
-      ) : (
-        <>
-          <MicOff className="h-4 w-4" />
-          Click to Start Speaking
-        </>
+    <div className="space-y-4">
+      <Button 
+        type="button" 
+        onClick={isListening ? stopVoiceInput : startVoiceInput}
+        variant="outline"
+        className="w-full flex items-center justify-center gap-2"
+      >
+        {isListening ? (
+          <>
+            <Mic className="h-4 w-4 animate-pulse text-red-500" />
+            Click When Finished Speaking
+          </>
+        ) : (
+          <>
+            <MicOff className="h-4 w-4" />
+            Click to Start Speaking
+          </>
+        )}
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => setShowVolumeControl(!showVolumeControl)}
+        className="w-full"
+      >
+        <Volume2 className="h-4 w-4 mr-2" />
+        Adjust Volume
+      </Button>
+
+      {showVolumeControl && (
+        <div className="p-4 border rounded-md">
+          <Slider
+            value={[volume]}
+            min={0}
+            max={1}
+            step={0.1}
+            onValueChange={handleVolumeChange}
+          />
+        </div>
       )}
-    </Button>
+    </div>
   );
 }
