@@ -118,16 +118,22 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container py-12">
-        <div className="flex justify-between items-center mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div 
+        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1649972904349-6e44c42644a7?auto=format&fit=crop&w=2400&q=80')] opacity-5 bg-cover bg-center pointer-events-none"
+        style={{ mixBlendMode: 'overlay' }}
+      />
+      <div className="container relative py-12 z-10">
+        <div className="flex justify-between items-center mb-8 backdrop-blur-sm bg-white/30 dark:bg-black/30 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
           {profile?.company_name && (
             <div className="text-left">
-              <h2 className="text-xl font-semibold">{profile.company_name}</h2>
+              <h2 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400">
+                {profile.company_name}
+              </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">{profile.industry}</p>
             </div>
           )}
-          <Button variant="outline" onClick={handleLogout}>
+          <Button variant="outline" onClick={handleLogout} className="hover:bg-gray-100 dark:hover:bg-gray-800">
             Sign Out
           </Button>
         </div>
@@ -137,16 +143,16 @@ const Index = () => {
         ) : (
           <>
             <div className="text-center mb-12 animate-fadeIn">
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              <h1 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-400 dark:to-indigo-400">
                 AI Business Lead Qualifier
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto backdrop-blur-sm bg-white/30 dark:bg-black/30 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
                 Enter your business information below for an AI-powered analysis of your lead qualification score and detailed insights.
               </p>
             </div>
 
             {showApiKeyInput ? (
-              <Card className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800">
+              <Card className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/60 dark:bg-black/60 border border-gray-200 dark:border-gray-800 shadow-xl">
                 <form onSubmit={handleApiKeySubmit} className="space-y-4">
                   <div>
                     <Label htmlFor="geminiApiKey">Google Gemini API Key</Label>
@@ -156,6 +162,7 @@ const Index = () => {
                       type="password"
                       placeholder="Enter your Google Gemini API key"
                       required
+                      className="bg-white/80 dark:bg-gray-800/80"
                     />
                   </div>
                   <div>
@@ -166,9 +173,12 @@ const Index = () => {
                       type="password"
                       placeholder="Enter your ElevenLabs API key"
                       required
+                      className="bg-white/80 dark:bg-gray-800/80"
                     />
                   </div>
-                  <Button type="submit" className="w-full">Save API Keys</Button>
+                  <Button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
+                    Save API Keys
+                  </Button>
                 </form>
               </Card>
             ) : (
@@ -180,7 +190,7 @@ const Index = () => {
                     <Button 
                       onClick={() => setResults(null)}
                       variant="outline"
-                      className="mt-4"
+                      className="mt-4 hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                       Qualify Another Lead
                     </Button>
