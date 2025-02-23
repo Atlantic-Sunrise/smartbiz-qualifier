@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,6 +8,7 @@ import { InsightsList } from "./qualification-results/InsightsList";
 import { RecommendationsList } from "./qualification-results/RecommendationsList";
 import { ConversationButton } from "./qualification-results/ConversationButton";
 import { useElevenLabsKey } from "@/hooks/useElevenLabsKey";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QualificationResult {
   score: number;
@@ -19,26 +20,51 @@ interface QualificationResult {
 export function QualificationResults({ results }: { results: QualificationResult }) {
   const [isConversing, setIsConversing] = useState(false);
   const apiKey = useElevenLabsKey();
+  const [elevenlabsConfig, setElevenlabsConfig] = useState<any>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('elevenlabs_config')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching ElevenLabs config:', error);
+        return;
+      }
+
+      setElevenlabsConfig(data?.elevenlabs_config);
+    };
+
+    fetchConfig();
+  }, []);
   
   const conversation = useConversation({
     overrides: {
       agent: {
         prompt: {
-          prompt: `You are an AI business analyst assistant. You have analyzed a business lead with the following results:
+          prompt: `You are an AI business analyst assistant who ONLY communicates in English. You have analyzed a business lead with the following results:
           Score: ${results.score}/100
           Summary: ${results.summary}
           Key Insights: ${results.insights.join(". ")}
           Recommendations: ${results.recommendations.join(". ")}
           
           Help the user understand these results and provide additional insights based on their questions.
+          Remember to ALWAYS respond in English only.
           Be concise but informative in your responses.`
         },
         firstMessage: "I've analyzed your lead qualification results. Would you like me to explain any specific aspect of the analysis?",
+        language: "en", // Force English language
       },
       tts: {
-        voiceId: "EXAVITQu4vr4xnSDxMaL", // Sarah's voice
-        modelId: "eleven_monolingual_v1",
+        voiceId: elevenlabsConfig?.voice_id || "EXAVITQu4vr4xnSDxMaL",
+        modelId: elevenlabsConfig?.model_id || "eleven_monolingual_v1",
         apiKey: apiKey || '',
       },
     },
@@ -75,10 +101,19 @@ export function QualificationResults({ results }: { results: QualificationResult
         return;
       }
 
+      if (!elevenlabsConfig) {
+        toast({
+          title: "Configuration Missing",
+          description: "ElevenLabs configuration is not available",
+          variant: "destructive",
+        });
+        return;
+      }
+
       console.log('Starting conversation with API key present');
       setIsConversing(true);
       await conversation.startSession({
-        agentId: "tHdevlgucdu7DHHmRaUO" // Using the specific agent ID from the URL
+        agentId: elevenlabsConfig.agent_id
       });
     } catch (error) {
       console.error('Conversation error:', error);
