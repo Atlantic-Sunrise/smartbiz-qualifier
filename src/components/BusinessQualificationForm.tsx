@@ -118,7 +118,7 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
               <Label htmlFor="industry">Industry</Label>
               <Select onValueChange={onIndustrySelect}>
                 <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select your industry" />
+                  <SelectValue placeholder="Select industry" />
                 </SelectTrigger>
                 <SelectContent>
                   {TOP_INDUSTRIES.map((ind) => (
