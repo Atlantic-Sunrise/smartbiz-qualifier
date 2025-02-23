@@ -63,7 +63,6 @@ export type Database = {
           business_services: string | null
           company_name: string | null
           created_at: string
-          elevenlabs_config: Json | null
           employee_count: string | null
           id: string
           industry: string | null
@@ -76,7 +75,6 @@ export type Database = {
           business_services?: string | null
           company_name?: string | null
           created_at?: string
-          elevenlabs_config?: Json | null
           employee_count?: string | null
           id: string
           industry?: string | null
@@ -89,7 +87,6 @@ export type Database = {
           business_services?: string | null
           company_name?: string | null
           created_at?: string
-          elevenlabs_config?: Json | null
           employee_count?: string | null
           id?: string
           industry?: string | null
