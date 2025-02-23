@@ -59,6 +59,7 @@ export type Database = {
       profiles: {
         Row: {
           annual_revenue: string | null
+          api_keys: Json | null
           business_services: string | null
           company_name: string | null
           created_at: string
@@ -70,6 +71,7 @@ export type Database = {
         }
         Insert: {
           annual_revenue?: string | null
+          api_keys?: Json | null
           business_services?: string | null
           company_name?: string | null
           created_at?: string
@@ -81,6 +83,7 @@ export type Database = {
         }
         Update: {
           annual_revenue?: string | null
+          api_keys?: Json | null
           business_services?: string | null
           company_name?: string | null
           created_at?: string

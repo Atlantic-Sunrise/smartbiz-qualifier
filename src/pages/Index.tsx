@@ -13,9 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [results, setResults] = useState<any>(null);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(
-    !localStorage.getItem('gemini_api_key') || !localStorage.getItem('eleven_labs_key')
-  );
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -32,12 +30,25 @@ const Index = () => {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, api_keys')
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
+      
       setProfile(data);
+      // Check if API keys are missing
+      const apiKeys = data?.api_keys || {};
+      setShowApiKeyInput(!apiKeys.gemini_api_key || !apiKeys.eleven_labs_key);
+      
+      // Set API keys in localStorage for the libraries to use
+      if (apiKeys.gemini_api_key) {
+        localStorage.setItem('gemini_api_key', apiKeys.gemini_api_key);
+      }
+      if (apiKeys.eleven_labs_key) {
+        localStorage.setItem('elevenlabs_api_key', apiKeys.eleven_labs_key);
+        localStorage.setItem('eleven_labs_key', apiKeys.eleven_labs_key);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -58,19 +69,46 @@ const Index = () => {
     }
   };
   
-  const handleApiKeySubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleApiKeySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const geminiApiKey = formData.get('geminiApiKey') as string;
     const elevenLabsKey = formData.get('elevenLabsKey') as string;
     
-    if (geminiApiKey && elevenLabsKey) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          api_keys: {
+            gemini_api_key: geminiApiKey,
+            eleven_labs_key: elevenLabsKey
+          }
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update localStorage for immediate use
       localStorage.setItem('gemini_api_key', geminiApiKey);
       localStorage.setItem('eleven_labs_key', elevenLabsKey);
+      localStorage.setItem('elevenlabs_api_key', elevenLabsKey);
+      
       setShowApiKeyInput(false);
       toast({
         title: "Success",
-        description: "API keys have been saved",
+        description: "API keys have been saved securely",
+      });
+      
+      await fetchProfile();
+    } catch (error) {
+      console.error('Error saving API keys:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save API keys",
+        variant: "destructive",
       });
     }
   };
