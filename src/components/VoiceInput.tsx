@@ -19,6 +19,10 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
 
   const conversation = useConversation({
     overrides: {
+      agent: {
+        firstMessage: questions.challenges,
+        language: "en",
+      },
       tts: {
         voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
       }
@@ -38,6 +42,7 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
       setIsListening(false);
     },
     onMessage: (message) => {
+      console.log("Received message:", message);
       if (message.type === 'transcript' && message.transcription) {
         onFieldUpdate(message.transcription);
       }
@@ -87,9 +92,10 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     if (!hasPermission) return;
 
     try {
-      // Start the conversation session
+      // Start the conversation session with agentId
+      // Note: You'll need to replace this with your actual agent ID
       await conversation.startSession({
-        text: questions.challenges // Initial question to be spoken
+        agentId: "default" // Replace with your actual agent ID
       });
     } catch (error) {
       console.error("Failed to start voice session:", error);
