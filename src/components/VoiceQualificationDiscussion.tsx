@@ -4,14 +4,18 @@ import { Mic, MicOff, Volume2 } from "lucide-react";
 import { useConversation } from "@11labs/react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
-import { questions } from "@/constants/businessFormConstants";
 import { Slider } from "@/components/ui/slider";
 
-interface VoiceInputProps {
-  onFieldUpdate: (value: string) => void;
+interface VoiceQualificationDiscussionProps {
+  results: {
+    score: number;
+    summary: string;
+    insights: string[];
+    recommendations: string[];
+  };
 }
 
-export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
+export function VoiceQualificationDiscussion({ results }: VoiceQualificationDiscussionProps) {
   const [isListening, setIsListening] = useState(false);
   const [showVolumeControl, setShowVolumeControl] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -20,19 +24,13 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
   const conversation = useConversation({
     overrides: {
       agent: {
-        firstMessage: questions.challenges,
+        firstMessage: `Let's discuss your lead qualification results. Your score is ${results.score} out of 100. ${results.summary}. Would you like to know more about the insights or recommendations?`,
         language: "en",
       },
       tts: {
         voiceId: "EXAVITQu4vr4xnSDxMaL" // Sarah's voice
       }
     },
-    connectionDelay: {
-      android: 3000, // Recommended delay for Android
-      ios: 0,
-      default: 0
-    },
-    preferHeadphonesForIosDevices: true,
     onConnect: () => {
       console.log("Connected to ElevenLabs");
       setIsListening(true);
@@ -43,15 +41,12 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     },
     onMessage: (message) => {
       console.log("Received message:", message);
-      if (message.type === 'transcript' && message.transcription) {
-        onFieldUpdate(message.transcription);
-      }
     },
     onError: (error) => {
       console.error("ElevenLabs error:", error);
       toast({
         title: "Error",
-        description: "There was an error with the voice input. Please try again.",
+        description: "There was an error with the voice interaction. Please try again.",
         variant: "destructive",
       });
       setIsListening(false);
@@ -65,7 +60,7 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     } catch (error) {
       toast({
         title: "Microphone Access Required",
-        description: "Please allow microphone access to use voice input.",
+        description: "Please allow microphone access to use voice interaction.",
         variant: "destructive",
       });
       return false;
@@ -78,7 +73,7 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     await conversation.setVolume({ volume: newVolume });
   };
 
-  const startVoiceInput = async () => {
+  const startVoiceInteraction = async () => {
     if (!window.localStorage.getItem('eleven_labs_key')) {
       toast({
         title: "API Key Missing",
@@ -93,19 +88,19 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
 
     try {
       await conversation.startSession({
-        agentId: "default" // Using default agent ID as before
+        agentId: "tHdevlgucdu7DHHmRaUO" // Using your agent ID for qualification discussion
       });
     } catch (error) {
       console.error("Failed to start voice session:", error);
       toast({
         title: "Error",
-        description: "Failed to start voice input. Please try again.",
+        description: "Failed to start voice interaction. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const stopVoiceInput = async () => {
+  const stopVoiceInteraction = async () => {
     try {
       await conversation.endSession();
     } catch (error) {
@@ -117,19 +112,19 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
     <div className="space-y-4">
       <Button 
         type="button" 
-        onClick={isListening ? stopVoiceInput : startVoiceInput}
+        onClick={isListening ? stopVoiceInteraction : startVoiceInteraction}
         variant="outline"
         className="w-full flex items-center justify-center gap-2"
       >
         {isListening ? (
           <>
             <Mic className="h-4 w-4 animate-pulse text-red-500" />
-            Click When Finished Speaking
+            Click to End Discussion
           </>
         ) : (
           <>
             <MicOff className="h-4 w-4" />
-            Click to Start Speaking
+            Discuss Results with AI
           </>
         )}
       </Button>
