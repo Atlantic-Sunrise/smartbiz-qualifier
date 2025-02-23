@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [results, setResults] = useState<any>(null);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!localStorage.getItem('perplexity_api_key'));
+  const [showApiKeyInput, setShowApiKeyInput] = useState(!localStorage.getItem('fal_api_key'));
   const { toast } = useToast();
   
   const handleApiKeySubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -19,7 +19,7 @@ const Index = () => {
     const apiKey = formData.get('apiKey') as string;
     
     if (apiKey) {
-      localStorage.setItem('perplexity_api_key', apiKey);
+      localStorage.setItem('fal_api_key', apiKey);
       setShowApiKeyInput(false);
       toast({
         title: "Success",
@@ -44,12 +44,12 @@ const Index = () => {
           <Card className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/30 dark:bg-black/30 border border-gray-200 dark:border-gray-800">
             <form onSubmit={handleApiKeySubmit} className="space-y-4">
               <div>
-                <Label htmlFor="apiKey">Perplexity API Key</Label>
+                <Label htmlFor="apiKey">Fal.ai API Key</Label>
                 <Input
                   id="apiKey"
                   name="apiKey"
                   type="password"
-                  placeholder="Enter your Perplexity API key"
+                  placeholder="Enter your fal.ai API key"
                   required
                 />
               </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import * as fal from "@fal-ai/serverless-client";
 
 interface BusinessFormData {
   companyName: string;
@@ -25,7 +26,12 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
-      const prompt = `Please analyze this business lead and provide a qualification score (0-100) and detailed insights. 
+      // Initialize fal client
+      fal.config({
+        credentials: localStorage.getItem('fal_api_key')
+      });
+
+      const prompt = `As an expert business analyst, analyze this lead and provide a qualification score (0-100) and detailed insights.
       Company: ${data.companyName}
       Industry: ${data.industry}
       Employees: ${data.employeeCount}
@@ -33,38 +39,33 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
       Website: ${data.website}
       Main Challenges: ${data.challenges}
       
-      Provide the response in this JSON format:
+      Provide a JSON response with this exact format:
       {
-        "score": number,
+        "score": number between 0-100,
         "summary": "brief qualification summary",
         "insights": ["insight1", "insight2", "insight3"],
         "recommendations": ["rec1", "rec2", "rec3"]
       }`;
 
-      const response = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('perplexity_api_key')}`,
-          'Content-Type': 'application/json',
+      const result = await fal.subscribe("fal-ai/llama-2-70b-chat", {
+        input: {
+          prompt: prompt
         },
-        body: JSON.stringify({
-          model: 'llama-3.1-sonar-small-128k-online',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert business analyst specializing in qualifying sales leads.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.2,
-        }),
       });
 
-      const result = await response.json();
-      const analysis = JSON.parse(result.choices[0].message.content);
+      let analysis;
+      try {
+        analysis = JSON.parse(result.text);
+      } catch (e) {
+        // If parsing fails, try to extract JSON from the text response
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          analysis = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error("Could not parse AI response");
+        }
+      }
+
       onResults(analysis);
     } catch (error) {
       console.error('Error analyzing business:', error);
