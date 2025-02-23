@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Card } from "@/components/ui/card";
@@ -27,12 +28,6 @@ interface BusinessFormData {
 
 interface AIResponse {
   response: string;
-}
-
-interface FalImageResponse {
-  images: Array<{
-    url: string;
-  }>;
 }
 
 const TOP_INDUSTRIES = [
@@ -69,6 +64,15 @@ const REVENUE_RANGES = [
   "$20M - $49.99M",
   "$50M+"
 ];
+
+const questions: Record<keyof BusinessFormData, string> = {
+  companyName: "What is the name of your company?",
+  industry: "What industry does your company operate in?",
+  employeeCount: "How many employees does your company have?",
+  annualRevenue: "What is your company's annual revenue range?",
+  website: "What is your company's website address?",
+  challenges: "What are the main challenges your business is facing?"
+};
 
 export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<BusinessFormData>();
