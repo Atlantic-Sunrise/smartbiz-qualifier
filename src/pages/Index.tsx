@@ -26,7 +26,15 @@ const Index = () => {
   const fetchProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No user found. Please sign in again.",
+        });
+        navigate("/auth");
+        return;
+      }
 
       const { data, error } = await supabase
         .from('profiles')
@@ -34,23 +42,43 @@ const Index = () => {
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch profile data",
+        });
+        return;
+      }
       
       setProfile(data);
-      // Check if API keys are missing
-      const apiKeys = data?.api_keys || {};
-      setShowApiKeyInput(!apiKeys.gemini_api_key || !apiKeys.eleven_labs_key);
       
-      // Set API keys in localStorage for the libraries to use
-      if (apiKeys.gemini_api_key) {
+      // Check if API keys exist and are valid
+      const apiKeys = data?.api_keys || {};
+      const hasValidKeys = apiKeys.gemini_api_key && apiKeys.eleven_labs_key;
+      setShowApiKeyInput(!hasValidKeys);
+      
+      if (hasValidKeys) {
+        // Set API keys in localStorage for the libraries to use
         localStorage.setItem('gemini_api_key', apiKeys.gemini_api_key);
-      }
-      if (apiKeys.eleven_labs_key) {
         localStorage.setItem('elevenlabs_api_key', apiKeys.eleven_labs_key);
         localStorage.setItem('eleven_labs_key', apiKeys.eleven_labs_key);
+        
+        console.log('ElevenLabs API key found in profile:', !!apiKeys.eleven_labs_key);
+      } else {
+        console.log('Missing API keys:', {
+          gemini: !apiKeys.gemini_api_key,
+          elevenLabs: !apiKeys.eleven_labs_key
+        });
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load profile data",
+      });
     } finally {
       setLoading(false);
     }
@@ -77,7 +105,15 @@ const Index = () => {
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No user found. Please sign in again.",
+        });
+        navigate("/auth");
+        return;
+      }
 
       const { error } = await supabase
         .from('profiles')
@@ -89,7 +125,10 @@ const Index = () => {
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving API keys:', error);
+        throw error;
+      }
 
       // Update localStorage for immediate use
       localStorage.setItem('gemini_api_key', geminiApiKey);
