@@ -29,7 +29,13 @@ export function QualificationResults({ results }: QualificationResultsProps) {
       </div>
 
       <Card className="p-6">
-        <Link to="/discuss" state={{ results }} className="w-full block">
+        <Link 
+          to={{
+            pathname: "/discuss",
+            search: `?score=${results.score}&summary=${encodeURIComponent(results.summary)}`
+          }} 
+          className="w-full block"
+        >
           <Button 
             variant="outline"
             className="w-full flex items-center justify-center gap-2"

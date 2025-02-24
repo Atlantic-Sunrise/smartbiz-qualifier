@@ -1,15 +1,16 @@
 
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { VoiceQualificationDiscussion } from "@/components/VoiceQualificationDiscussion";
 
 export default function Discuss() {
-  const location = useLocation();
-  const { results } = location.state || {};
+  const [searchParams] = useSearchParams();
+  const score = searchParams.get('score');
+  const summary = searchParams.get('summary');
 
-  if (!results) {
+  if (!score || !summary) {
     return (
       <div className="container py-12">
         <Card className="p-6 text-center">
@@ -22,6 +23,13 @@ export default function Discuss() {
       </div>
     );
   }
+
+  const results = {
+    score: parseInt(score),
+    summary: summary,
+    insights: [],
+    recommendations: []
+  };
 
   return (
     <div className="container py-12">
