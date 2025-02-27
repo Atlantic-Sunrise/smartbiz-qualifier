@@ -80,9 +80,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return null;
   }
 
-  // Get only the most recent qualification
-  const mostRecentQualification = qualifications.length > 0 ? qualifications[0] : null;
-
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -92,63 +89,67 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
       <div className="w-full">
         {isLoading ? (
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
-        ) : mostRecentQualification ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Company</TableHead>
-                <TableHead>Industry</TableHead>
-                <TableHead>Revenue</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow
-                key={mostRecentQualification.id}
-                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                onClick={() => handleSelect(mostRecentQualification)}
-              >
-                <TableCell className="font-medium">{mostRecentQualification.company_name}</TableCell>
-                <TableCell>{mostRecentQualification.industry}</TableCell>
-                <TableCell>{mostRecentQualification.annual_revenue}</TableCell>
-                <TableCell>
-                  <span className={`font-semibold ${
-                    mostRecentQualification.qualification_score >= 80 ? "text-green-500" : 
-                    mostRecentQualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
-                  }`}>
-                    {mostRecentQualification.qualification_score}/100
-                  </span>
-                </TableCell>
-                <TableCell>
-                  {formatDistanceToNow(new Date(mostRecentQualification.created_at), { addSuffix: true })}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={isDeleting === mostRecentQualification.id}
-                      onClick={(e) => handleDelete(mostRecentQualification.id, e)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button
-                      variant="ghost" 
-                      size="sm"
-                      className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 p-1 h-auto"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        ) : null}
+        ) : (
+          <div className="max-h-[400px] overflow-auto border rounded-md">
+            <Table>
+              <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                <TableRow>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Revenue</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {qualifications.map((qualification) => (
+                  <TableRow
+                    key={qualification.id}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                    onClick={() => handleSelect(qualification)}
+                  >
+                    <TableCell className="font-medium">{qualification.company_name}</TableCell>
+                    <TableCell>{qualification.industry}</TableCell>
+                    <TableCell>{qualification.annual_revenue}</TableCell>
+                    <TableCell>
+                      <span className={`font-semibold ${
+                        qualification.qualification_score >= 80 ? "text-green-500" : 
+                        qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
+                      }`}>
+                        {qualification.qualification_score}/100
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={isDeleting === qualification.id}
+                          onClick={(e) => handleDelete(qualification.id, e)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        
+                        <Button
+                          variant="ghost" 
+                          size="sm"
+                          className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 p-1 h-auto"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     </div>
   );
