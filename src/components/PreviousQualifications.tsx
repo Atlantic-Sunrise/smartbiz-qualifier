@@ -1,16 +1,17 @@
 
 import { useState, useEffect } from "react";
-import { fetchQualifications } from "@/services/businessFormService";
+import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 export function PreviousQualifications({ onSelectResult }: { onSelectResult: (result: any) => void }) {
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
@@ -32,6 +33,30 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      setDeletingId(id);
+      await deleteQualification(id);
+      
+      // Remove the deleted qualification from the state
+      setQualifications(qualifications.filter(qual => qual.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Qualification deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting qualification:", error);
+      toast({
+        title: "Error",
+        description: "Could not delete qualification",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -99,6 +124,15 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
                 })}
               >
                 <Eye className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                disabled={deletingId === qual.id}
+                onClick={() => handleDelete(qual.id)}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>

@@ -58,3 +58,25 @@ export async function fetchQualifications() {
   
   return data;
 }
+
+// Add a function to delete a qualification
+export async function deleteQualification(id: string) {
+  const user = (await supabase.auth.getUser()).data.user;
+  
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+  
+  const { error } = await supabase
+    .from('business_qualifications')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id); // Ensure users can only delete their own records
+    
+  if (error) {
+    console.error('Error deleting qualification:', error);
+    throw new Error('Failed to delete qualification');
+  }
+  
+  return true;
+}
