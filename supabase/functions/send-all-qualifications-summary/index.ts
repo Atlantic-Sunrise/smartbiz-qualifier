@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@1.0.0";
+import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -41,7 +41,7 @@ function createQualificationsTable(qualifications: QualificationData[]): string 
       <tbody>
         ${qualifications.map((q) => `
           <tr>
-            <td style="border: 1px solid #ddd; padding: 12px;">${q.businessName || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px;">${q.businessName}</td>
             <td style="border: 1px solid #ddd; padding: 12px;">${q.industry || 'N/A'}</td>
             <td style="border: 1px solid #ddd; padding: 12px;">${q.annualRevenue || 'N/A'}</td>
             <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: ${
@@ -55,60 +55,44 @@ function createQualificationsTable(qualifications: QualificationData[]): string 
   `;
 }
 
-// Function to create CSV data from qualifications
-function createCSV(qualifications: QualificationData[]): string {
-  // Create CSV header
-  const header = "Company Name,Industry,Revenue,Score\n";
+const handler = async (req: Request): Promise<Response> => {
+  console.log("Edge function invoked: send-all-qualifications-summary");
   
-  // Create CSV rows
-  const rows = qualifications.map(q => {
-    const companyName = (q.businessName || 'N/A').replace(/,/g, ' '); 
-    const industry = (q.industry || 'N/A').replace(/,/g, ' ');
-    const revenue = (q.annualRevenue || 'N/A').replace(/,/g, ' ');
-    const score = q.score || 0;
-    
-    return `"${companyName}","${industry}","${revenue}",${score}`;
-  }).join('\n');
-  
-  return header + rows;
-}
-
-serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse request body
-    const reqJson = await req.json();
-    const { email, qualifications } = reqJson as MultipleQualificationsSummaryEmailData;
+    console.log("Parsing request body");
     
+    // Get the request body
+    const data: MultipleQualificationsSummaryEmailData = await req.json();
+    const { email, qualifications } = data;
+
+    console.log(`Received request to send summary to: ${email}`);
+    console.log(`Number of qualifications: ${qualifications?.length || 0}`);
+
     if (!email) {
-      return new Response(
-        JSON.stringify({ error: "Email is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+      throw new Error("Email is required");
     }
 
-    if (!qualifications || !Array.isArray(qualifications) || qualifications.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Valid qualifications data is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+    if (!qualifications || qualifications.length === 0) {
+      throw new Error("No qualifications data provided");
     }
 
-    // Create HTML table and CSV content
-    const tableHtml = createQualificationsTable(qualifications);
-    const csvContent = createCSV(qualifications);
+    // Verify Resend API Key
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    console.log(`Resend API Key present: ${Boolean(apiKey)}`);
     
-    // Create HTML email content
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is not set");
+    }
+
+    console.log("Attempting to send email via Resend");
+    
+    // Create the HTML email content
     const htmlContent = `
       <html>
         <head>
@@ -130,49 +114,71 @@ serve(async (req) => {
               margin-top: 30px;
               margin-bottom: 15px;
             }
+            .summary {
+              margin-bottom: 30px;
+            }
+            .footer {
+              margin-top: 40px;
+              font-size: 14px;
+              color: #6b7280;
+              border-top: 1px solid #e5e7eb;
+              padding-top: 20px;
+            }
           </style>
         </head>
         <body>
           <h1>Lead Qualification Summary Report</h1>
-          <p>You have ${qualifications.length} qualified lead${qualifications.length !== 1 ? 's' : ''}.</p>
+          
+          <div class="summary">
+            <p>You have ${qualifications.length} qualified lead${qualifications.length !== 1 ? 's' : ''}.</p>
+          </div>
+          
           <h2>All Leads Overview</h2>
-          ${tableHtml}
-          <p>A CSV file with this data is attached to this email for your convenience.</p>
+          ${createQualificationsTable(qualifications)}
+          
+          <div class="footer">
+            <p>This report was generated automatically by the Lead Qualification Tool.</p>
+          </div>
         </body>
       </html>
     `;
-
-    // Send email with CSV attachment
-    const emailResult = await resend.emails.send({
-      from: "Lead Qualifier <onboarding@resend.dev>",
-      to: [email],
-      subject: "Lead Qualification Summary Report",
-      html: htmlContent,
-      attachments: [
+    
+    // Send the email using Resend
+    try {
+      const emailResponse = await resend.emails.send({
+        from: "Lead Qualifier <onboarding@resend.dev>",
+        to: [email],
+        subject: "Lead Qualification Summary Report",
+        html: htmlContent,
+      });
+      
+      console.log("Email sent successfully:", emailResponse);
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "Email sent successfully", data: emailResponse }),
         {
-          filename: "lead_qualifications.csv",
-          content: Buffer.from(csvContent).toString("base64")
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 200,
         }
-      ]
-    });
-
-    return new Response(
-      JSON.stringify({ success: true, data: emailResult }),
-      { 
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-    
+      );
+    } catch (emailError) {
+      console.error("Resend email error:", emailError);
+      throw new Error(`Failed to send email: ${emailError.message}`);
+    }
   } catch (error) {
-    console.error("Error sending qualification summary:", error);
+    console.error("Error in send-all-qualifications-summary function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to process request" }),
+      JSON.stringify({
+        success: false,
+        error: error.message || "Failed to send qualification summary email",
+      }),
       {
+        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }
-});
+};
+
+serve(handler);

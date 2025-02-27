@@ -45,21 +45,11 @@ export async function sendQualificationSummary(data: QualificationSummaryEmailDa
 
 export async function sendMultipleQualificationsSummary(data: MultipleQualificationsSummaryEmailData) {
   try {
-    // Log the data being sent (without email for privacy)
-    console.log('Sending qualifications summary:', {
-      qualificationsCount: data.qualifications.length,
-      firstQualification: data.qualifications[0] ? {
-        businessName: data.qualifications[0].businessName,
-        score: data.qualifications[0].score,
-      } : null
-    });
-
     const response = await supabase.functions.invoke('send-all-qualifications-summary', {
       body: data,
     });
     
     if (response.error) {
-      console.error('Supabase function error:', response.error);
       throw new Error(response.error.message || 'Failed to send email');
     }
     
