@@ -147,14 +147,15 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         <div className="flex flex-col space-y-4">
           <ScoreDisplay score={results.score} summary={results.summary} />
           
-          <div className="mt-4 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <Button 
               onClick={handleSendSummary}
               disabled={isSendingEmail}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-purple-600 hover:bg-purple-700 px-6 py-2 text-base"
+              size="lg"
             >
-              <Mail className="mr-2 h-4 w-4" />
-              {isSendingEmail ? "Sending..." : "Email Summary"}
+              <Mail className="mr-2 h-5 w-5" />
+              {isSendingEmail ? "Sending..." : "Email Qualification Summary"}
             </Button>
           </div>
         </div>

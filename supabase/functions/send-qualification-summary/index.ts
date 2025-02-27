@@ -37,76 +37,212 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Email is required");
     }
 
-    // Create HTML table for insights and recommendations
-    const insightsHtml = insights.map(insight => `<tr><td>${insight}</td></tr>`).join("");
-    const recommendationsHtml = recommendations.map(rec => `<tr><td>${rec}</td></tr>`).join("");
+    // Create HTML lists for insights and recommendations
+    const insightsHtml = insights.map(insight => `<li style="margin-bottom: 8px;">${insight}</li>`).join("");
+    const recommendationsHtml = recommendations.map(rec => `<li style="margin-bottom: 8px;">${rec}</li>`).join("");
 
-    // Format the email HTML
+    // Get the qualification status based on score
+    const getQualificationStatus = (score: number) => {
+      if (score >= 80) return { text: "High Potential", color: "#22c55e" };
+      if (score >= 60) return { text: "Medium Potential", color: "#eab308" };
+      return { text: "Low Potential", color: "#ef4444" };
+    };
+    
+    const status = getQualificationStatus(score);
+
+    // Format the email HTML with a clean, professional design
     const emailHtml = `
     <html>
       <head>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .score { font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0; }
-          .score-value { 
-            font-size: 42px; 
-            color: ${score >= 80 ? '#22c55e' : score >= 60 ? '#eab308' : '#ef4444'};
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            background-color: #f9fafb;
+            margin: 0;
+            padding: 0;
           }
-          .summary { margin-bottom: 20px; padding: 15px; background-color: #f9fafb; border-radius: 5px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          table, th, td { border: 1px solid #e5e7eb; }
-          th { background-color: #f3f4f6; padding: 10px; text-align: left; }
-          td { padding: 10px; }
-          .section-title { font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+          .container { 
+            max-width: 650px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+          }
+          .header { 
+            background-color: #7c3aed; 
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 24px;
+          }
+          .header p {
+            margin: 5px 0 0;
+            opacity: 0.9;
+          }
+          .content {
+            padding: 30px;
+          }
+          .score-card {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
+          }
+          .score-value { 
+            font-size: 48px; 
+            font-weight: bold;
+            color: ${status.color};
+            margin: 0;
+          }
+          .score-label {
+            font-size: 18px;
+            color: #64748b;
+            margin: 0;
+          }
+          .status-badge {
+            display: inline-block;
+            background-color: ${status.color}25;
+            color: ${status.color};
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 10px;
+          }
+          .summary-card {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
+          }
+          .summary-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #1e293b;
+          }
+          .summary-text {
+            margin: 0;
+            color: #475569;
+          }
+          .section {
+            margin-bottom: 25px;
+          }
+          .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+          }
+          .insights-list, .recommendations-list {
+            margin: 0;
+            padding: 0 0 0 20px;
+            color: #475569;
+          }
+          .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+          .results-table th, .results-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .results-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: #334155;
+          }
+          .results-table tr:last-child td {
+            border-bottom: none;
+          }
+          .footer {
+            text-align: center;
+            padding: 20px 30px;
+            color: #64748b;
+            font-size: 13px;
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>Business Lead Qualification Summary</h1>
-            <p>For: ${businessName}</p>
+            <h1>Lead Qualification Summary</h1>
+            <p>for ${businessName}</p>
           </div>
           
-          <div class="score">
-            Qualification Score: <span class="score-value">${score}</span>/100
-          </div>
-          
-          <div class="summary">
-            <strong>Summary:</strong> ${summary}
-          </div>
-          
-          <div>
-            <p class="section-title">Key Insights:</p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Insights</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${insightsHtml}
-              </tbody>
-            </table>
+          <div class="content">
+            <div class="score-card">
+              <p class="score-label">Qualification Score</p>
+              <p class="score-value">${score}<span style="font-size: 24px; color: #94a3b8;">/100</span></p>
+              <div class="status-badge">${status.text}</div>
+            </div>
             
-            <p class="section-title">Recommendations:</p>
-            <table>
-              <thead>
+            <div class="summary-card">
+              <h3 class="summary-title">Executive Summary</h3>
+              <p class="summary-text">${summary}</p>
+            </div>
+            
+            <div class="section">
+              <h3 class="section-title">Full Qualification Results</h3>
+              <table class="results-table">
                 <tr>
-                  <th>Recommendations</th>
+                  <th>Category</th>
+                  <th>Details</th>
                 </tr>
-              </thead>
-              <tbody>
+                <tr>
+                  <td><strong>Business Name</strong></td>
+                  <td>${businessName}</td>
+                </tr>
+                <tr>
+                  <td><strong>Qualification Score</strong></td>
+                  <td>${score}/100 (${status.text})</td>
+                </tr>
+                <tr>
+                  <td><strong>Summary</strong></td>
+                  <td>${summary}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <div class="section">
+              <h3 class="section-title">Key Insights</h3>
+              <ul class="insights-list">
+                ${insightsHtml}
+              </ul>
+            </div>
+            
+            <div class="section">
+              <h3 class="section-title">Recommendations</h3>
+              <ul class="recommendations-list">
                 ${recommendationsHtml}
-              </tbody>
-            </table>
+              </ul>
+            </div>
           </div>
           
-          <p style="margin-top: 30px; font-size: 12px; color: #6b7280; text-align: center;">
-            This is an automated summary from Business Lead Qualifier. 
+          <div class="footer">
+            This is an automated summary from your Business Lead Qualification tool.
             Please do not reply to this email.
-          </p>
+          </div>
         </div>
       </body>
     </html>
