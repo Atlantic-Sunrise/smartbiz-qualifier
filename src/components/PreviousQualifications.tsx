@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
 import { Button } from "@/components/ui/button";
@@ -74,14 +73,11 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     onSelectResult(results, qualification.company_name);
   };
 
-  // Extract a one-word key need from the qualification data
   const extractKeyNeed = (qualification: any): string => {
-    // Return the stored key_need if it exists
     if (qualification.key_need) {
       return qualification.key_need;
     }
     
-    // Common business need categories
     const needKeywords: Record<string, string[]> = {
       "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
       "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
@@ -95,12 +91,10 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
       "strategy": ["strategy", "planning", "direction", "vision", "mission", "pivot"]
     };
 
-    // Combine summary and challenges into a single text to analyze
     const text = (qualification.qualification_summary || "") + " " + (qualification.challenges || "");
     const lowerText = text.toLowerCase();
     
-    // Find which category has the most keyword matches
-    let bestCategory = "growth"; // Default
+    let bestCategory = "growth";
     let highestMatches = 0;
     
     for (const [category, keywords] of Object.entries(needKeywords)) {
@@ -114,7 +108,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return bestCategory.charAt(0).toUpperCase() + bestCategory.slice(1);
   };
 
-  // If there are no previous qualifications, don't show this component
   if (!isLoading && qualifications.length === 0) {
     return null;
   }
@@ -130,7 +123,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
         ) : (
           <div className="border rounded-md">
-            {/* Excel-like table with both horizontal and vertical scrollbars */}
             <div className="overflow-auto max-h-[300px]" style={{ maxWidth: '100%' }}>
               <Table>
                 <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">

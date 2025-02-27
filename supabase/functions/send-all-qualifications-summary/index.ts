@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { format } from "npm:date-fns@3.6.0";
@@ -29,7 +28,6 @@ interface MultipleQualificationsSummaryEmailData {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -42,11 +40,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No qualifications provided for the email");
     }
 
-    // Generate HTML for each qualification
     const qualificationsHtml = qualifications.map((qual, index) => {
       const scoreColor = qual.score >= 80 ? "#34D399" : qual.score >= 60 ? "#FBBF24" : "#EF4444";
       
-      // Format the date in a more readable way
       let formattedDate = "N/A";
       try {
         const date = new Date(qual.createdAt);
@@ -55,7 +51,6 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("Error formatting date:", e);
       }
       
-      // Create summaries of insights and recommendations (first 2 items only)
       const insightsSummary = qual.insights
         .slice(0, 2)
         .map((insight) => `<li style="margin-bottom: 8px;">${insight}</li>`)
@@ -83,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           ${qual.keyNeed ? `
           <div style="background-color: #F3E8FF; border-radius: 6px; padding: 15px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #7E22CE; font-size: 16px;">Key Business Need: ${qual.keyNeed}</h3>
+            <h3 style="margin-top: 0; color: #7E22CE; font-size: 16px;">Key Need: ${qual.keyNeed}</h3>
           </div>
           ` : ''}
           

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
@@ -21,7 +20,6 @@ interface QualificationSummaryEmailData {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -32,7 +30,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     const scoreColor = score >= 80 ? "#34D399" : score >= 60 ? "#FBBF24" : "#EF4444";
     
-    // Create HTML for insights and recommendations lists
     const insightsList = insights
       .map((insight) => `<li style="margin-bottom: 10px;">${insight}</li>`)
       .join("");
@@ -71,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               ${keyNeed ? `
               <div style="background-color: #F3E8FF; border-radius: 6px; padding: 15px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #7E22CE;">Key Business Need: ${keyNeed}</h3>
+                <h3 style="margin-top: 0; color: #7E22CE;">Key Need: ${keyNeed}</h3>
               </div>
               ` : ''}
             </div>
