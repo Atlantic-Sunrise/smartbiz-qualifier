@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { AlertCircle } from "lucide-react";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [rateLimitError, setRateLimitError] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -82,6 +84,7 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+    setRateLimitError(false);
 
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -91,7 +94,15 @@ export default function Auth() {
         },
       });
       
-      if (error) throw error;
+      if (error) {
+        // Check specifically for rate limit errors
+        if (error.message.toLowerCase().includes('rate limit') || 
+            error.message.includes('429')) {
+          setRateLimitError(true);
+          throw new Error("Email rate limit exceeded. Please wait a few minutes before trying again.");
+        }
+        throw error;
+      }
       
       toast({
         title: "Magic link sent!",
@@ -117,6 +128,19 @@ export default function Auth() {
             Enter your email to sign in or create an account
           </p>
         </div>
+
+        {rateLimitError && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-400">Rate Limit Exceeded</h3>
+              <div className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                <p>Too many magic link emails have been sent to this address recently.</p>
+                <p className="mt-1">Please wait a few minutes before trying again, or check your inbox for an existing magic link.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
