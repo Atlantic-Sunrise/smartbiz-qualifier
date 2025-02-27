@@ -207,12 +207,13 @@ export default function BusinessProfile() {
       // Create a unique file path
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`; // Simplified path without subfolder
+      const filePath = fileName;
 
-      // Upload to Supabase Storage - using the correct bucket name
-      console.log("Attempting to upload to bucket 'business-assets'");
+      console.log("Attempting to upload to bucket 'business-logos'");
+      
+      // Upload to Supabase Storage - using the new bucket name
       const { data, error: uploadError } = await supabase.storage
-        .from('business-assets')
+        .from('business-logos')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
@@ -227,7 +228,7 @@ export default function BusinessProfile() {
 
       // Get the public URL for the uploaded file
       const { data: urlData } = supabase.storage
-        .from('business-assets')
+        .from('business-logos')
         .getPublicUrl(filePath);
 
       console.log("Public URL data:", urlData);
