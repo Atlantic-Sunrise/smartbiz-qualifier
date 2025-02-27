@@ -74,14 +74,14 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   }
 
   return (
-    <div className="w-full text-center">
-      <div className="flex justify-center items-center mb-4">
-        <h2 className="text-xl font-semibold">Previous Qualifications</h2>
+    <div className="w-full flex flex-col items-center">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-center">Lead Qualifications</h2>
       </div>
       
-      <div className="w-full flex justify-center">
+      <div className="w-full max-w-6xl">
         {isLoading ? (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="p-4 h-28 animate-pulse">
                 <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
@@ -94,7 +94,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {qualifications.map((qualification) => (
               <Card 
                 key={qualification.id}
