@@ -75,7 +75,7 @@ export function VoiceInput({ onFieldUpdate }: VoiceInputProps) {
         ) : (
           <>
             <Mic className="h-4 w-4" />
-            Click to Speak
+            Type or Click Here to Speak
           </>
         )}
       </Button>

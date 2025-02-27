@@ -116,6 +116,7 @@ export function FormFields({
             placeholder="Describe the main challenges faced by the business"
             rows={4}
           />
+          <p className="text-sm text-gray-500 mt-1 mb-2">Type in the field above or use voice input:</p>
           <VoiceInput onFieldUpdate={handleVoiceInput} />
         </div>
         {errors.challenges && (
