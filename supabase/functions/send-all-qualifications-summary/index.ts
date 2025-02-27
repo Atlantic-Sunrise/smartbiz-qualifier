@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { format } from "npm:date-fns@3.6.0";
@@ -40,6 +41,59 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No qualifications provided for the email");
     }
 
+    // Create a table for the qualifications overview
+    const tableRows = qualifications.map((qual, idx) => {
+      const scoreColor = qual.score >= 80 ? "#34D399" : qual.score >= 60 ? "#FBBF24" : "#EF4444";
+      let formattedDate = "N/A";
+      try {
+        const date = new Date(qual.createdAt);
+        formattedDate = format(date, "MMM d, yyyy");
+      } catch (e) {
+        console.error("Error formatting date:", e);
+      }
+      
+      return `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${qual.businessName}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${qual.industry || "Unknown"}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${qual.annualRevenue || "N/A"}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">
+            <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: ${scoreColor}; color: white; font-weight: bold;">
+              ${qual.score}/100
+            </span>
+          </td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">
+            <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background-color: #F3F4F6; color: #111827; font-size: 0.875rem;">
+              ${qual.keyNeed || "Growth"}
+            </span>
+          </td>
+          <td style="padding: 10px; border-bottom: 1px solid #eee;">${formattedDate}</td>
+        </tr>
+      `;
+    }).join("");
+
+    // Table for the qualifications overview
+    const qualificationsTable = `
+      <div style="margin-bottom: 30px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+          <thead>
+            <tr style="background-color: #f9fafb; text-align: left;">
+              <th style="padding: 12px 10px; border-bottom: 2px solid #ddd;">Company</th>
+              <th style="padding: 12px 10px; border-bottom: 2px solid #ddd;">Industry</th>
+              <th style="padding: 12px 10px; border-bottom: 2px solid #ddd;">Revenue</th>
+              <th style="padding: 12px 10px; border-bottom: 2px solid #ddd;">Score</th>
+              <th style="padding: 12px 10px; border-bottom: 2px solid #ddd;">Key Need</th>
+              <th style="padding: 12px 10px; border-bottom: 2px solid #ddd;">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // Detailed qualifications cards
     const qualificationsHtml = qualifications.map((qual, index) => {
       const scoreColor = qual.score >= 80 ? "#34D399" : qual.score >= 60 ? "#FBBF24" : "#EF4444";
       
@@ -124,6 +178,10 @@ const handler = async (req: Request): Promise<Response> => {
               <h1 style="margin-bottom: 10px;">Lead Qualifications Summary</h1>
               <p style="font-size: 16px; color: #666;">A summary of all your qualified leads (${qualifications.length} total)</p>
             </div>
+            
+            ${qualificationsTable}
+            
+            <h2 style="margin-top: 40px; margin-bottom: 20px; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #eee;">Detailed Qualification Reports</h2>
             
             ${qualificationsHtml}
             
