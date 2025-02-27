@@ -15,12 +15,11 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TOP_INDUSTRIES, EMPLOYEE_RANGES, REVENUE_RANGES } from "@/constants/businessFormConstants";
-import { useProfile } from "@/context/ProfileContext";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 export default function BusinessProfile() {
-  const { profile, refreshProfile } = useProfile();
-  const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     companyName: '',
     jobTitle: '',
@@ -32,68 +31,130 @@ export default function BusinessProfile() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Load profile data when component mounts or profile changes
+  // Fetch profile data directly from Supabase
   useEffect(() => {
-    if (profile) {
-      console.log("Profile loaded:", profile); // Debug log
-      setFormData({
-        companyName: profile.company_name || '',
-        jobTitle: profile.job_title || '',
-        industry: profile.industry || '',
-        employeeCount: profile.employee_count || '',
-        annualRevenue: profile.annual_revenue || '',
-        businessServices: profile.business_services || ''
-      });
-    }
-  }, [profile]);
+    async function fetchProfile() {
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in to view this page.",
+          });
+          navigate("/auth");
+          return;
+        }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Fetch profile data for this user
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load profile data. Please try again.",
+          });
+          return;
+        }
+
+        console.log("Profile data retrieved:", data);
+        setProfile(data);
+        
+        // Populate form with retrieved data
+        setFormData({
+          companyName: data.company_name || '',
+          jobTitle: data.job_title || '',
+          industry: data.industry || '',
+          employeeCount: data.employee_count || '',
+          annualRevenue: data.annual_revenue || '',
+          businessServices: data.business_services || ''
+        });
+      } catch (error) {
+        console.error('Error in fetchProfile:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load profile data",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProfile();
+  }, [navigate, toast]);
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     
-    const profileData = {
-      company_name: formData.companyName,
-      industry: formData.industry,
-      employee_count: formData.employeeCount,
-      annual_revenue: formData.annualRevenue,
-      business_services: formData.businessServices,
-      job_title: formData.jobTitle,
-    };
-
     try {
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error("No user found. Please sign in again.");
       }
 
-      console.log("Updating profile for user ID:", user.id); // Debug log
+      // Prepare data to update
+      const profileData = {
+        company_name: formData.companyName,
+        industry: formData.industry,
+        employee_count: formData.employeeCount,
+        annual_revenue: formData.annualRevenue,
+        business_services: formData.businessServices,
+        job_title: formData.jobTitle,
+        updated_at: new Date()
+      };
 
+      console.log("Updating profile for user ID:", user.id);
+      console.log("Update data:", profileData);
+
+      // Update profile in Supabase
       const { error } = await supabase
         .from('profiles')
         .update(profileData)
         .eq('id', user.id);
 
       if (error) {
-        console.error("Supabase update error:", error); // Debug log
+        console.error("Update error:", error);
         throw error;
+      }
+
+      // Refresh profile data
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (fetchError) {
+        console.error("Error refreshing profile data:", fetchError);
+      } else {
+        setProfile(data);
       }
 
       toast({
         title: "Profile Updated",
         description: "Your business profile has been saved successfully.",
       });
-      
-      await refreshProfile();
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -106,7 +167,7 @@ export default function BusinessProfile() {
     }
   };
 
-  if (!profile) {
+  if (loading && !profile) {
     return (
       <PageContainer>
         <div className="w-full max-w-4xl mx-auto">
