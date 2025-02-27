@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BusinessFormData } from "@/constants/businessFormConstants";
 import { supabase } from "@/integrations/supabase/client";
+import { FirecrawlService } from '@/utils/FirecrawlService';
 
 export async function analyzeBusinessLead(data: BusinessFormData) {
   const apiKey = localStorage.getItem('gemini_api_key');
@@ -17,8 +18,22 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     .eq('id', user?.id)
     .single();
 
+  let websiteData = "";
+  if (data.website) {
+    try {
+      console.log('Starting website crawl for:', data.website);
+      const crawlResult = await FirecrawlService.crawlWebsite(data.website);
+      if (crawlResult.success && crawlResult.data) {
+        websiteData = `Website Analysis:
+          Found Content: ${JSON.stringify(crawlResult.data).substring(0, 1500)}`;
+      }
+    } catch (error) {
+      console.error('Error crawling website:', error);
+      websiteData = "Note: Website analysis failed or was unavailable.";
+    }
+  }
+
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Updated to use the current model name
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `As an expert business analyst, analyze this lead in the context of the qualifying business.
@@ -38,7 +53,9 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     Website: ${data.website}
     Main Challenges: ${data.challenges}
     
-    Consider factors like industry alignment, business size compatibility, potential synergies between our services and their needs, and whether we can address their challenges.
+    ${websiteData}
+    
+    Consider factors like industry alignment, business size compatibility, potential synergies between our services and their needs, and whether we can address their challenges. Also analyze any relevant information found from their website.
     
     Provide a JSON response with this exact format:
     {
@@ -62,3 +79,4 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     throw new Error("Could not parse AI response");
   }
 }
+
