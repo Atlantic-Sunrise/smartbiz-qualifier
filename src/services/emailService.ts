@@ -10,6 +10,21 @@ export interface QualificationSummaryEmailData {
   recommendations: string[];
 }
 
+export interface QualificationData {
+  businessName: string;
+  score: number;
+  summary: string;
+  insights: string[];
+  recommendations: string[];
+  industry: string;
+  createdAt: string;
+}
+
+export interface MultipleQualificationsSummaryEmailData {
+  email: string;
+  qualifications: QualificationData[];
+}
+
 export async function sendQualificationSummary(data: QualificationSummaryEmailData) {
   try {
     const response = await supabase.functions.invoke('send-qualification-summary', {
@@ -23,6 +38,23 @@ export async function sendQualificationSummary(data: QualificationSummaryEmailDa
     return response.data;
   } catch (error) {
     console.error('Error sending qualification summary email:', error);
+    throw error;
+  }
+}
+
+export async function sendMultipleQualificationsSummary(data: MultipleQualificationsSummaryEmailData) {
+  try {
+    const response = await supabase.functions.invoke('send-all-qualifications-summary', {
+      body: data,
+    });
+    
+    if (response.error) {
+      throw new Error(response.error.message || 'Failed to send email');
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error sending multiple qualifications summary email:', error);
     throw error;
   }
 }
