@@ -62,11 +62,16 @@ function createCSV(qualifications: QualificationData[]): string {
   
   // Create CSV rows
   const rows = qualifications.map(q => {
-    const companyName = q.businessName.replace(/,/g, ' '); // Replace commas to avoid CSV issues
+    const companyName = q.businessName ? q.businessName.replace(/,/g, ' ') : 'N/A'; // Replace commas to avoid CSV issues
     const industry = (q.industry || 'N/A').replace(/,/g, ' ');
     const revenue = (q.annualRevenue || 'N/A').replace(/,/g, ' ');
-    const score = q.score;
-    const date = new Date(q.createdAt).toLocaleDateString();
+    const score = q.score || 0;
+    let date;
+    try {
+      date = q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'N/A';
+    } catch (e) {
+      date = 'N/A';
+    }
     
     return `"${companyName}","${industry}","${revenue}",${score},"${date}"`;
   }).join('\n');
@@ -87,18 +92,46 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Parsing request body");
     
     // Get the request body
-    const data: MultipleQualificationsSummaryEmailData = await req.json();
+    const body = await req.text();
+    console.log("Request body:", body);
+    
+    let data: MultipleQualificationsSummaryEmailData;
+    try {
+      data = JSON.parse(body);
+    } catch (e) {
+      console.error("Error parsing JSON:", e);
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid JSON in request body" }),
+        {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 400,
+        }
+      );
+    }
+    
     const { email, qualifications } = data;
-
+    
     console.log(`Received request to send summary to: ${email}`);
     console.log(`Number of qualifications: ${qualifications?.length || 0}`);
 
     if (!email) {
-      throw new Error("Email is required");
+      return new Response(
+        JSON.stringify({ success: false, error: "Email is required" }),
+        {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 400,
+        }
+      );
     }
 
     if (!qualifications || qualifications.length === 0) {
-      throw new Error("No qualifications data provided");
+      return new Response(
+        JSON.stringify({ success: false, error: "No qualifications data provided" }),
+        {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 400,
+        }
+      );
     }
 
     // Verify Resend API Key
@@ -106,78 +139,86 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Resend API Key present: ${Boolean(apiKey)}`);
     
     if (!apiKey) {
-      throw new Error("RESEND_API_KEY environment variable is not set");
+      return new Response(
+        JSON.stringify({ success: false, error: "RESEND_API_KEY environment variable is not set" }),
+        {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 500,
+        }
+      );
     }
 
-    console.log("Attempting to send email via Resend");
+    console.log("Creating email content");
     
-    // Create CSV data for attachment
-    const csvData = createCSV(qualifications);
-    const currentDate = new Date().toISOString().split('T')[0];
-    
-    // Create the HTML email content
-    const htmlContent = `
-      <html>
-        <head>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              line-height: 1.6;
-              color: #333;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-            }
-            h1 {
-              color: #4f46e5;
-              margin-bottom: 20px;
-            }
-            h2 {
-              color: #4b5563;
-              margin-top: 30px;
-              margin-bottom: 15px;
-            }
-            .summary {
-              margin-bottom: 30px;
-            }
-            .download-note {
-              margin-top: 20px;
-              padding: 12px;
-              background-color: #f9f9f9;
-              border-left: 4px solid #4f46e5;
-            }
-            .footer {
-              margin-top: 40px;
-              font-size: 14px;
-              color: #6b7280;
-              border-top: 1px solid #e5e7eb;
-              padding-top: 20px;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Lead Qualification Summary Report</h1>
-          
-          <div class="summary">
-            <p>You have ${qualifications.length} qualified lead${qualifications.length !== 1 ? 's' : ''}.</p>
-          </div>
-          
-          <h2>All Leads Overview</h2>
-          ${createQualificationsTable(qualifications)}
-          
-          <div class="download-note">
-            <p>A CSV file with this data is attached to this email for your convenience. You can import it directly into your CRM or other tools.</p>
-          </div>
-          
-          <div class="footer">
-            <p>This report was generated automatically by the Lead Qualification Tool.</p>
-          </div>
-        </body>
-      </html>
-    `;
-    
-    // Send the email using Resend
     try {
+      // Create CSV data for attachment
+      const csvData = createCSV(qualifications);
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      // Create the HTML email content
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+              }
+              h1 {
+                color: #4f46e5;
+                margin-bottom: 20px;
+              }
+              h2 {
+                color: #4b5563;
+                margin-top: 30px;
+                margin-bottom: 15px;
+              }
+              .summary {
+                margin-bottom: 30px;
+              }
+              .download-note {
+                margin-top: 20px;
+                padding: 12px;
+                background-color: #f9f9f9;
+                border-left: 4px solid #4f46e5;
+              }
+              .footer {
+                margin-top: 40px;
+                font-size: 14px;
+                color: #6b7280;
+                border-top: 1px solid #e5e7eb;
+                padding-top: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Lead Qualification Summary Report</h1>
+            
+            <div class="summary">
+              <p>You have ${qualifications.length} qualified lead${qualifications.length !== 1 ? 's' : ''}.</p>
+            </div>
+            
+            <h2>All Leads Overview</h2>
+            ${createQualificationsTable(qualifications)}
+            
+            <div class="download-note">
+              <p>A CSV file with this data is attached to this email for your convenience. You can import it directly into your CRM or other tools.</p>
+            </div>
+            
+            <div class="footer">
+              <p>This report was generated automatically by the Lead Qualification Tool.</p>
+            </div>
+          </body>
+        </html>
+      `;
+      
+      console.log("Attempting to send email via Resend");
+      
+      // Send the email using Resend
       const emailResponse = await resend.emails.send({
         from: "Lead Qualifier <onboarding@resend.dev>",
         to: [email],
@@ -194,7 +235,11 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("Email sent successfully:", emailResponse);
       
       return new Response(
-        JSON.stringify({ success: true, message: "Email sent successfully", data: emailResponse }),
+        JSON.stringify({ 
+          success: true, 
+          message: "Email sent successfully", 
+          data: emailResponse 
+        }),
         {
           headers: { "Content-Type": "application/json", ...corsHeaders },
           status: 200,
@@ -202,7 +247,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     } catch (emailError) {
       console.error("Resend email error:", emailError);
-      throw new Error(`Failed to send email: ${emailError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Failed to send email: ${emailError.message || "Unknown error"}` 
+        }),
+        {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 500,
+        }
+      );
     }
   } catch (error) {
     console.error("Error in send-all-qualifications-summary function:", error);
