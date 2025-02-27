@@ -55,6 +55,25 @@ function createQualificationsTable(qualifications: QualificationData[]): string 
   `;
 }
 
+// Function to create CSV data from qualifications
+function createCSV(qualifications: QualificationData[]): string {
+  // Create CSV header
+  const header = "Company Name,Industry,Revenue,Score,Date Qualified\n";
+  
+  // Create CSV rows
+  const rows = qualifications.map(q => {
+    const companyName = q.businessName.replace(/,/g, ' '); // Replace commas to avoid CSV issues
+    const industry = (q.industry || 'N/A').replace(/,/g, ' ');
+    const revenue = (q.annualRevenue || 'N/A').replace(/,/g, ' ');
+    const score = q.score;
+    const date = new Date(q.createdAt).toLocaleDateString();
+    
+    return `"${companyName}","${industry}","${revenue}",${score},"${date}"`;
+  }).join('\n');
+  
+  return header + rows;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   console.log("Edge function invoked: send-all-qualifications-summary");
   
@@ -92,6 +111,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send email via Resend");
     
+    // Create CSV data for attachment
+    const csvData = createCSV(qualifications);
+    const currentDate = new Date().toISOString().split('T')[0];
+    
     // Create the HTML email content
     const htmlContent = `
       <html>
@@ -117,6 +140,12 @@ const handler = async (req: Request): Promise<Response> => {
             .summary {
               margin-bottom: 30px;
             }
+            .download-note {
+              margin-top: 20px;
+              padding: 12px;
+              background-color: #f9f9f9;
+              border-left: 4px solid #4f46e5;
+            }
             .footer {
               margin-top: 40px;
               font-size: 14px;
@@ -136,6 +165,10 @@ const handler = async (req: Request): Promise<Response> => {
           <h2>All Leads Overview</h2>
           ${createQualificationsTable(qualifications)}
           
+          <div class="download-note">
+            <p>A CSV file with this data is attached to this email for your convenience. You can import it directly into your CRM or other tools.</p>
+          </div>
+          
           <div class="footer">
             <p>This report was generated automatically by the Lead Qualification Tool.</p>
           </div>
@@ -150,6 +183,12 @@ const handler = async (req: Request): Promise<Response> => {
         to: [email],
         subject: "Lead Qualification Summary Report",
         html: htmlContent,
+        attachments: [
+          {
+            filename: `lead_qualifications_${currentDate}.csv`,
+            content: Buffer.from(csvData).toString('base64'),
+          },
+        ],
       });
       
       console.log("Email sent successfully:", emailResponse);
