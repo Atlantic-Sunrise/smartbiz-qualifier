@@ -36,7 +36,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, api_keys')
+        .select('*')
         .eq('id', user.id)
         .single();
 
@@ -52,20 +52,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       
       setProfile(data);
       
-      // FIXED: Only show API key input during initial setup, never after
-      // If the user has a company name set, they've completed initial setup
-      const hasCompletedSetup = data?.company_name;
-      setShowApiKeyInput(false); // Never show API key input by default
-      
-      // If user has provided their own API key, store it in localStorage
-      const apiKeys = data?.api_keys || {};
-      if (apiKeys.gemini_api_key) {
-        localStorage.setItem('gemini_api_key', apiKeys.gemini_api_key);
-        console.log('Personal Gemini API key found in profile');
-      } else {
-        // Always use the shared key if no personal key is set
-        console.log('Using shared API key');
-      }
+      // Never show API key input, as we've removed that feature
+      setShowApiKeyInput(false);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
       toast({

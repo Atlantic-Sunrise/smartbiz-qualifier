@@ -4,9 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { FirecrawlService } from '@/utils/FirecrawlService';
 
 export async function analyzeBusinessLead(data: BusinessFormData) {
-  // Try to get user's personal API key first, then use the Edge Function for shared key
-  const personalApiKey = localStorage.getItem('gemini_api_key');
-  
   // Get the user's business profile
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
@@ -47,8 +44,7 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
       website: data.website,
       challenges: data.challenges
     },
-    websiteData: websiteData,
-    personalApiKey: personalApiKey
+    websiteData: websiteData
   };
 
   try {
@@ -66,6 +62,6 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     return result;
   } catch (error) {
     console.error("Error with AI Analysis:", error);
-    throw new Error("AI service unavailable. Please try again later or provide your own API key in settings.");
+    throw new Error("AI service unavailable. Please try again later.");
   }
 }

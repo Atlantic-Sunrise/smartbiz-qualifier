@@ -3,7 +3,6 @@ import { useState } from "react";
 import { QualificationFormSection } from "./QualificationFormSection";
 import { ResultsDisplay } from "./ResultsDisplay";
 import { BusinessProfileSetup } from "@/components/BusinessProfileSetup";
-import { ApiKeyForm } from "@/components/apikey/ApiKeyForm";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { useProfile } from "@/context/ProfileContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,12 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function MainContent() {
   const [results, setResults] = useState<any>(null);
   const [businessName, setBusinessName] = useState<string>("");
-  const { profile, showApiKeyInput, setShowApiKeyInput, refreshProfile } = useProfile();
-
-  const handleApiKeySaved = async () => {
-    setShowApiKeyInput(false);
-    await refreshProfile();
-  };
+  const { profile } = useProfile();
 
   const handleResults = (resultsData: any, companyName: string) => {
     setResults(resultsData);
@@ -28,28 +22,24 @@ export function MainContent() {
   };
 
   if (!profile?.company_name) {
-    return <BusinessProfileSetup onComplete={refreshProfile} />;
+    return <BusinessProfileSetup onComplete={() => window.location.reload()} />;
   }
 
   return (
     <>
       <PageTitle />
 
-      {showApiKeyInput ? (
-        <ApiKeyForm onApiKeySaved={handleApiKeySaved} />
-      ) : (
-        <div className="space-y-8 w-full">
-          {!results ? (
-            <QualificationFormSection onResultsReceived={handleResults} />
-          ) : (
-            <ResultsDisplay 
-              results={results} 
-              businessName={businessName} 
-              onReset={handleReset} 
-            />
-          )}
-        </div>
-      )}
+      <div className="space-y-8 w-full">
+        {!results ? (
+          <QualificationFormSection onResultsReceived={handleResults} />
+        ) : (
+          <ResultsDisplay 
+            results={results} 
+            businessName={businessName} 
+            onReset={handleReset} 
+          />
+        )}
+      </div>
     </>
   );
 }

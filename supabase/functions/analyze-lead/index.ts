@@ -17,15 +17,14 @@ serve(async (req) => {
     const {
       businessProfile,
       leadData,
-      websiteData,
-      personalApiKey
+      websiteData
     } = await req.json();
 
-    // Use personal API key if provided, otherwise use the secure environment variable
-    const apiKey = personalApiKey || Deno.env.get("GEMINI_API_KEY") || "";
+    // Use the shared API key from environment variables
+    const apiKey = Deno.env.get("GEMINI_API_KEY") || "";
     
     if (!apiKey) {
-      throw new Error("No API key available");
+      throw new Error("API key not configured on server");
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -85,7 +84,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: "AI service unavailable. Please try again later or provide your own API key in settings.",
+        error: "AI service unavailable. Please try again later.",
         details: error.message
       }),
       { 
