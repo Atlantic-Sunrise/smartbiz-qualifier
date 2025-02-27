@@ -17,7 +17,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { TOP_INDUSTRIES, EMPLOYEE_RANGES, REVENUE_RANGES } from "@/constants/businessFormConstants";
 import { useProfile } from "@/context/ProfileContext";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { PageTitle } from "@/components/layout/PageTitle";
 
 export default function BusinessProfile() {
   const { profile, refreshProfile } = useProfile();
@@ -36,6 +35,7 @@ export default function BusinessProfile() {
   // Load profile data when component mounts or profile changes
   useEffect(() => {
     if (profile) {
+      console.log("Profile loaded:", profile); // Debug log
       setFormData({
         companyName: profile.company_name || '',
         jobTitle: profile.job_title || '',
@@ -76,12 +76,17 @@ export default function BusinessProfile() {
         throw new Error("No user found. Please sign in again.");
       }
 
+      console.log("Updating profile for user ID:", user.id); // Debug log
+
       const { error } = await supabase
         .from('profiles')
         .update(profileData)
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase update error:", error); // Debug log
+        throw error;
+      }
 
       toast({
         title: "Profile Updated",
