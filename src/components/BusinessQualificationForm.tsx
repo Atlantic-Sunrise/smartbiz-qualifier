@@ -8,7 +8,7 @@ import { FormFields } from "./business-form/FormFields";
 import { SubmitButton } from "./business-form/SubmitButton";
 import { submitBusinessForm } from "@/services/businessFormService";
 
-export function BusinessQualificationForm({ onResults }: { onResults: (data: any) => void }) {
+export function BusinessQualificationForm({ onResults }: { onResults: (data: any, businessName: string) => void }) {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<BusinessFormData>();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -33,7 +33,7 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
     setIsLoading(true);
     try {
       const analysis = await submitBusinessForm(data);
-      onResults(analysis);
+      onResults(analysis, data.companyName);
       
       toast({
         title: "Success",

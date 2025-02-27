@@ -1,1 +1,7 @@
+
 project_id = "stzmklayujbxxswpbqtb"
+[api]
+enabled = true
+[functions]
+[functions.send-qualification-summary]
+verify_jwt = true

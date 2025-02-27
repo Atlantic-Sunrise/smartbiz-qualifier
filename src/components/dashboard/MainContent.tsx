@@ -11,11 +11,17 @@ import { Button } from "@/components/ui/button";
 
 export function MainContent() {
   const [results, setResults] = useState<any>(null);
+  const [businessName, setBusinessName] = useState<string>("");
   const { profile, showApiKeyInput, setShowApiKeyInput, refreshProfile } = useProfile();
 
   const handleApiKeySaved = async () => {
     setShowApiKeyInput(false);
     await refreshProfile();
+  };
+
+  const handleResults = (resultsData: any, companyName: string) => {
+    setResults(resultsData);
+    setBusinessName(companyName);
   };
 
   if (!profile?.company_name) {
@@ -32,11 +38,14 @@ export function MainContent() {
         <div className="space-y-8">
           {!results && (
             <>
-              <PreviousQualifications onSelectResult={setResults} />
-              <BusinessQualificationForm onResults={setResults} />
+              <PreviousQualifications onSelectResult={(result, name) => {
+                setResults(result);
+                setBusinessName(name);
+              }} />
+              <BusinessQualificationForm onResults={handleResults} />
             </>
           )}
-          {results && <QualificationResults results={results} />}
+          {results && <QualificationResults results={results} businessName={businessName} />}
           {results && (
             <div className="text-center">
               <Button 

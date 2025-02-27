@@ -8,9 +8,11 @@ import { VoiceInput } from "./VoiceInput";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Send } from "lucide-react";
+import { Send, Mail } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useToast } from "./ui/use-toast";
+import { sendQualificationSummary } from "@/services/emailService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface QualificationResultsProps {
   results: {
@@ -19,12 +21,14 @@ interface QualificationResultsProps {
     insights: string[];
     recommendations: string[];
   };
+  businessName?: string;
 }
 
-export function QualificationResults({ results }: QualificationResultsProps) {
+export function QualificationResults({ results, businessName = "" }: QualificationResultsProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { toast } = useToast();
 
   const handleQuestionSubmit = async (e: React.FormEvent) => {
@@ -100,10 +104,60 @@ export function QualificationResults({ results }: QualificationResultsProps) {
     setQuestion(transcript);
   };
 
+  const handleSendSummary = async () => {
+    try {
+      setIsSendingEmail(true);
+      
+      // Get current user's email
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user || !user.email) {
+        throw new Error("User email not found. Please ensure you're logged in.");
+      }
+      
+      // Send the email
+      await sendQualificationSummary({
+        email: user.email,
+        businessName: businessName,
+        score: results.score,
+        summary: results.summary,
+        insights: results.insights,
+        recommendations: results.recommendations
+      });
+      
+      toast({
+        title: "Summary Sent",
+        description: `Qualification summary has been sent to ${user.email}`,
+      });
+    } catch (error) {
+      console.error("Error sending summary:", error);
+      toast({
+        title: "Email Failed",
+        description: error instanceof Error ? error.message : "Failed to send summary email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <Card className="p-6">
-        <ScoreDisplay score={results.score} summary={results.summary} />
+        <div className="flex flex-col space-y-4">
+          <ScoreDisplay score={results.score} summary={results.summary} />
+          
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={handleSendSummary}
+              disabled={isSendingEmail}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              {isSendingEmail ? "Sending..." : "Email Summary"}
+            </Button>
+          </div>
+        </div>
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
