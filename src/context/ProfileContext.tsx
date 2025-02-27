@@ -52,13 +52,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       
       setProfile(data);
       
-      // Check if user has already set up their profile and made API key choice
-      const hasCompletedSetup = data?.company_name && 
-                               (data?.hasOwnProperty('api_key_decision_made') || 
-                                (data?.api_keys && data.api_keys.gemini_api_key));
-      
-      // Only show API key input for new users who haven't made a decision yet
-      setShowApiKeyInput(!hasCompletedSetup);
+      // FIXED: Only show API key input during initial setup, never after
+      // If the user has a company name set, they've completed initial setup
+      const hasCompletedSetup = data?.company_name;
+      setShowApiKeyInput(false); // Never show API key input by default
       
       // If user has provided their own API key, store it in localStorage
       const apiKeys = data?.api_keys || {};
@@ -66,6 +63,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('gemini_api_key', apiKeys.gemini_api_key);
         console.log('Personal Gemini API key found in profile');
       } else {
+        // Always use the shared key if no personal key is set
         console.log('Using shared API key');
       }
     } catch (error) {
