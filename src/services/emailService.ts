@@ -8,7 +8,7 @@ export interface QualificationSummaryEmailData {
   summary: string;
   insights: string[];
   recommendations: string[];
-  challenge?: string; // Add the challenge field
+  keyNeed?: string; // Renamed from challenge to keyNeed
 }
 
 export interface QualificationData {
@@ -20,7 +20,7 @@ export interface QualificationData {
   industry: string;
   annualRevenue?: string;
   createdAt: string;
-  challenge?: string; // Add the challenge field
+  keyNeed?: string; // Renamed from challenge to keyNeed
 }
 
 export interface MultipleQualificationsSummaryEmailData {

@@ -12,6 +12,14 @@ export async function submitBusinessForm(data: BusinessFormData) {
   
   const analysis = await analyzeBusinessLead(data);
   
+  // Extract the key need from the data
+  const keyNeed = extractKeyNeed({
+    qualification_summary: analysis.summary,
+    qualification_insights: analysis.insights,
+    qualification_recommendations: analysis.recommendations,
+    challenges: data.challenges
+  });
+  
   // Insert the business data and qualification results
   const { error: storageError } = await supabase
     .from('business_qualifications')
@@ -26,7 +34,8 @@ export async function submitBusinessForm(data: BusinessFormData) {
       qualification_score: analysis.score,
       qualification_summary: analysis.summary,
       qualification_insights: analysis.insights,
-      qualification_recommendations: analysis.recommendations
+      qualification_recommendations: analysis.recommendations,
+      challenge: keyNeed // Store the key need in the challenge field
     });
 
   if (storageError) {
@@ -35,6 +44,44 @@ export async function submitBusinessForm(data: BusinessFormData) {
   }
 
   return analysis;
+}
+
+// Add a function to extract the key need from qualification data
+function extractKeyNeed(qualification: any): string {
+  // Common business need categories
+  const needKeywords: Record<string, string[]> = {
+    "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
+    "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
+    "finance": ["finance", "funding", "cash flow", "investment", "budget", "cost", "profit", "pricing"],
+    "operations": ["operations", "efficiency", "process", "workflow", "productivity", "logistics"],
+    "talent": ["talent", "hiring", "recruitment", "staff", "employee", "retention", "team", "workforce"],
+    "technology": ["technology", "digital", "software", "automation", "integration", "infrastructure", "IT"],
+    "competition": ["competition", "competitive", "market", "industry", "disruption"],
+    "innovation": ["innovation", "product", "development", "R&D", "creative", "design"],
+    "compliance": ["compliance", "regulation", "legal", "policy", "standard"],
+    "strategy": ["strategy", "planning", "direction", "vision", "mission", "pivot"]
+  };
+
+  // Combine all text data for analysis
+  const text = (qualification.qualification_summary || "") + " " + 
+               (qualification.qualification_insights || []).join(" ") + " " + 
+               (qualification.qualification_recommendations || []).join(" ") + " " +
+               (qualification.challenges || "");
+  const lowerText = text.toLowerCase();
+  
+  // Find which category has the most keyword matches
+  let bestCategory = "growth"; // Default
+  let highestMatches = 0;
+  
+  for (const [category, keywords] of Object.entries(needKeywords)) {
+    const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
+    if (matches > highestMatches) {
+      highestMatches = matches;
+      bestCategory = category;
+    }
+  }
+  
+  return bestCategory.charAt(0).toUpperCase() + bestCategory.slice(1);
 }
 
 // Add a function to fetch previous qualifications

@@ -30,10 +30,15 @@ export function MainContent() {
     setBusinessName(companyName);
   };
 
-  // Extract a one-word challenge from the qualification data
-  const extractChallenge = (qualification: any): string => {
-    // Common business challenge categories
-    const challengeKeywords: Record<string, string[]> = {
+  // Extract a one-word key need from the qualification data
+  const extractKeyNeed = (qualification: any): string => {
+    // Return the stored challenge if it exists
+    if (qualification.challenge) {
+      return qualification.challenge;
+    }
+    
+    // Common business need categories
+    const needKeywords: Record<string, string[]> = {
       "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
       "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
       "finance": ["finance", "funding", "cash flow", "investment", "budget", "cost", "profit", "pricing"],
@@ -56,7 +61,7 @@ export function MainContent() {
     let bestCategory = "growth"; // Default
     let highestMatches = 0;
     
-    for (const [category, keywords] of Object.entries(challengeKeywords)) {
+    for (const [category, keywords] of Object.entries(needKeywords)) {
       const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
       if (matches > highestMatches) {
         highestMatches = matches;
@@ -100,7 +105,7 @@ export function MainContent() {
         industry: qual.industry,
         annualRevenue: qual.annual_revenue,
         createdAt: qual.created_at,
-        challenge: extractChallenge(qual) // Add the challenge
+        keyNeed: qual.challenge || extractKeyNeed(qual) // Use stored value or extract it
       }));
       
       // Send the email

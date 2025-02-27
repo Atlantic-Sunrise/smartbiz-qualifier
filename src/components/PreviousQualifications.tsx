@@ -74,10 +74,15 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     onSelectResult(results, qualification.company_name);
   };
 
-  // Extract a one-word challenge from the qualification data
-  const extractChallenge = (qualification: any): string => {
-    // Common business challenge categories
-    const challengeKeywords: Record<string, string[]> = {
+  // Extract a one-word key need from the qualification data
+  const extractKeyNeed = (qualification: any): string => {
+    // Return the stored challenge if it exists
+    if (qualification.challenge) {
+      return qualification.challenge;
+    }
+    
+    // Common business need categories
+    const needKeywords: Record<string, string[]> = {
       "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
       "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
       "finance": ["finance", "funding", "cash flow", "investment", "budget", "cost", "profit", "pricing"],
@@ -98,7 +103,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     let bestCategory = "growth"; // Default
     let highestMatches = 0;
     
-    for (const [category, keywords] of Object.entries(challengeKeywords)) {
+    for (const [category, keywords] of Object.entries(needKeywords)) {
       const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
       if (matches > highestMatches) {
         highestMatches = matches;
@@ -134,7 +139,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                     <TableHead className="min-w-[120px]">Industry</TableHead>
                     <TableHead className="min-w-[100px]">Revenue</TableHead>
                     <TableHead className="min-w-[80px]">Score</TableHead>
-                    <TableHead className="min-w-[120px]">Challenge</TableHead>
+                    <TableHead className="min-w-[120px]">Key Need</TableHead>
                     <TableHead className="min-w-[100px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -158,7 +163,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-medium">
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                          {extractChallenge(qualification)}
+                          {extractKeyNeed(qualification)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
