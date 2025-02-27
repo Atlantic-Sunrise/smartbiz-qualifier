@@ -139,7 +139,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                     <TableHead className="min-w-[120px]">Industry</TableHead>
                     <TableHead className="min-w-[100px]">Revenue</TableHead>
                     <TableHead className="min-w-[80px]">Score</TableHead>
-                    <TableHead className="min-w-[120px]">Key Business Need</TableHead>
+                    <TableHead className="min-w-[120px]">Key Need</TableHead>
                     <TableHead className="min-w-[100px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
