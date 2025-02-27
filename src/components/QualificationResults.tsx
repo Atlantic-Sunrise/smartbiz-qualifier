@@ -9,6 +9,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Send } from "lucide-react";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 interface QualificationResultsProps {
   results: {
@@ -31,6 +32,11 @@ export function QualificationResults({ results }: QualificationResultsProps) {
     
     setIsLoading(true);
     try {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      if (!apiKey) {
+        throw new Error("Gemini API key not found. Please add your API key in the settings.");
+      }
+      
       // Create context from results
       const context = `
         Score: ${results.score}/100
@@ -39,24 +45,34 @@ export function QualificationResults({ results }: QualificationResultsProps) {
         Recommendations: ${results.recommendations.join(", ")}
       `;
       
-      // Simulate AI response based on context and question
-      // In a real app, you would call an API here
-      const simulatedResponse = await new Promise<string>((resolve) => {
-        setTimeout(() => {
-          const responses = [
-            `Based on the lead's score of ${results.score}, I would recommend focusing on ${results.recommendations[0].toLowerCase()}`,
-            `The key insight to consider is that ${results.insights[0].toLowerCase()}`,
-            `Given the summary, I would suggest prioritizing outreach to this lead based on their ${results.score > 70 ? "high potential" : "specific needs"}`,
-            `This lead's qualification score of ${results.score}/100 indicates ${results.score > 80 ? "strong" : results.score > 60 ? "moderate" : "limited"} potential for conversion`
-          ];
-          resolve(responses[Math.floor(Math.random() * responses.length)]);
-        }, 1000);
-      });
+      // Initialize the Gemini API
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
       
-      setAnswer(simulatedResponse);
+      // Create the prompt that includes both context and user question
+      const prompt = `
+        You are a business lead qualification expert. I'm going to provide you with information 
+        about a qualified business lead and then ask you a question about it.
+        
+        Here is the lead qualification information:
+        ${context}
+        
+        Based on this information, please answer the following question:
+        ${question}
+        
+        Provide a concise, professional response focused on actionable insights. Limit your 
+        response to 3-4 sentences.
+      `;
+      
+      // Generate content
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const generatedText = response.text();
+      
+      setAnswer(generatedText);
     } catch (error) {
       console.error("Error generating answer:", error);
-      setAnswer("Sorry, I couldn't process your question. Please try again.");
+      setAnswer(`Sorry, I couldn't process your question. ${error instanceof Error ? error.message : "Please try again."}`);
     } finally {
       setIsLoading(false);
     }
