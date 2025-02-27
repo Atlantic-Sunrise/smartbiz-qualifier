@@ -55,7 +55,7 @@ export function ApiKeyForm({ onApiKeySaved }: ApiKeyFormProps) {
       
       toast({
         title: "Success",
-        description: "API key has been saved securely",
+        description: "Personal API key has been saved securely",
       });
       
       onApiKeySaved();
@@ -71,27 +71,55 @@ export function ApiKeyForm({ onApiKeySaved }: ApiKeyFormProps) {
     }
   };
 
+  const skipApiKey = () => {
+    toast({
+      title: "Using Shared API Key",
+      description: "You'll be using the application's shared API key with limited usage.",
+    });
+    onApiKeySaved();
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto p-6 backdrop-blur-sm bg-white/60 dark:bg-black/60 border border-gray-200 dark:border-gray-800 shadow-xl">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-center mb-2">API Key Setup (Optional)</h2>
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+          You can use your own Gemini API key for better performance and no usage limits. 
+          This is optional - you can also use our shared key with limited usage.
+        </p>
+      </div>
+      
       <form onSubmit={handleApiKeySubmit} className="space-y-4">
         <div>
-          <Label htmlFor="geminiApiKey">Google Gemini API Key</Label>
+          <Label htmlFor="geminiApiKey">Google Gemini API Key (Optional)</Label>
           <Input
             id="geminiApiKey"
             name="geminiApiKey"
             type="password"
             placeholder="Enter your Google Gemini API key"
-            required
             className="bg-white/80 dark:bg-gray-800/80"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Get your API key from the <a href="https://aistudio.google.com/app/apikey" className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">Google AI Studio</a>
+          </p>
         </div>
-        <Button 
-          type="submit" 
-          className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-          disabled={loading}
-        >
-          {loading ? "Saving..." : "Save API Key"}
-        </Button>
+        <div className="grid grid-cols-2 gap-4">
+          <Button 
+            type="button" 
+            className="w-full" 
+            variant="outline"
+            onClick={skipApiKey}
+          >
+            Skip (Use Shared Key)
+          </Button>
+          <Button 
+            type="submit" 
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+            disabled={loading}
+          >
+            {loading ? "Saving..." : "Save My API Key"}
+          </Button>
+        </div>
       </form>
     </Card>
   );

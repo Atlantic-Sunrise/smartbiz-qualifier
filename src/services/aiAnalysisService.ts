@@ -4,12 +4,13 @@ import { BusinessFormData } from "@/constants/businessFormConstants";
 import { supabase } from "@/integrations/supabase/client";
 import { FirecrawlService } from '@/utils/FirecrawlService';
 
-export async function analyzeBusinessLead(data: BusinessFormData) {
-  const apiKey = localStorage.getItem('gemini_api_key');
-  if (!apiKey) {
-    throw new Error("Gemini API key not found");
-  }
+// This should be replaced with your organization's API key in a production environment
+const FALLBACK_API_KEY = "AIzaSyDuUVqRJnbP9UZdWONDvnRBzr6xDKN9xRc"; // Demo API key with usage limits
 
+export async function analyzeBusinessLead(data: BusinessFormData) {
+  // Try to get user's personal API key first, then fall back to the organization key
+  const apiKey = localStorage.getItem('gemini_api_key') || FALLBACK_API_KEY;
+  
   // Get the user's business profile
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
@@ -65,18 +66,22 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
       "recommendations": ["rec1", "rec2", "rec3"]
     }`;
 
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const text = response.text();
-  
   try {
-    return JSON.parse(text);
-  } catch (e) {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      throw new Error("Could not parse AI response");
     }
-    throw new Error("Could not parse AI response");
+  } catch (error) {
+    console.error("Error with Gemini API:", error);
+    throw new Error("AI service unavailable. Please try again later or provide your own API key in settings.");
   }
 }
-

@@ -14,6 +14,20 @@ export function MainContent() {
 
   const handleApiKeySaved = async () => {
     setShowApiKeyInput(false);
+    
+    // Mark that the user has made a decision about the API key
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ api_key_decision_made: true })
+          .eq('id', user.id);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    }
+    
     await refreshProfile();
   };
 

@@ -52,17 +52,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       
       setProfile(data);
       
-      // Check if Gemini API key exists
-      const apiKeys = data?.api_keys || {};
-      const hasGeminiKey = !!apiKeys.gemini_api_key;
-      setShowApiKeyInput(!hasGeminiKey);
+      // Check if user has already set up their profile and made API key choice
+      const hasCompletedSetup = data?.company_name && 
+                               (data?.hasOwnProperty('api_key_decision_made') || 
+                                (data?.api_keys && data.api_keys.gemini_api_key));
       
-      if (hasGeminiKey) {
-        // Set API key in localStorage for the library to use
+      // Only show API key input for new users who haven't made a decision yet
+      setShowApiKeyInput(!hasCompletedSetup);
+      
+      // If user has provided their own API key, store it in localStorage
+      const apiKeys = data?.api_keys || {};
+      if (apiKeys.gemini_api_key) {
         localStorage.setItem('gemini_api_key', apiKeys.gemini_api_key);
-        console.log('Gemini API key found in profile');
+        console.log('Personal Gemini API key found in profile');
       } else {
-        console.log('Missing Gemini API key');
+        console.log('Using shared API key');
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
