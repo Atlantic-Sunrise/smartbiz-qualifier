@@ -4,10 +4,10 @@ import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-// Define CORS headers
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface QualificationSummaryEmailData {
@@ -17,250 +17,108 @@ interface QualificationSummaryEmailData {
   summary: string;
   insights: string[];
   recommendations: string[];
+  keyNeed?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Edge function invoked: send-qualification-summary");
-  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Parsing request body");
-    
-    // Get the request body
     const data: QualificationSummaryEmailData = await req.json();
-    const { email, businessName, score, summary, insights, recommendations } = data;
+    const { email, businessName, score, summary, insights, recommendations, keyNeed } = data;
 
-    console.log(`Received request to send summary to: ${email}`);
-    console.log(`Business Name: ${businessName}, Score: ${score}`);
-
-    if (!email) {
-      throw new Error("Email is required");
-    }
-
-    // Verify Resend API Key
-    const apiKey = Deno.env.get("RESEND_API_KEY");
-    console.log(`Resend API Key present: ${Boolean(apiKey)}`);
+    const scoreColor = score >= 80 ? "#34D399" : score >= 60 ? "#FBBF24" : "#EF4444";
     
-    if (!apiKey) {
-      throw new Error("RESEND_API_KEY environment variable is not set");
-    }
+    // Create HTML for insights and recommendations lists
+    const insightsList = insights
+      .map((insight) => `<li style="margin-bottom: 10px;">${insight}</li>`)
+      .join("");
+      
+    const recommendationsList = recommendations
+      .map((recommendation) => `<li style="margin-bottom: 10px;">${recommendation}</li>`)
+      .join("");
 
-    // Get qualification status
-    const status = getQualificationStatus(score);
-
-    // Format the insights HTML
-    const insightsHtml = insights.map(insight => 
-      `<li style="margin-bottom: 10px; display: flex;">
-        <span style="color: #22c55e; margin-right: 10px;">✓</span>
-        <span>${insight}</span>
-      </li>`
-    ).join("");
-
-    // Format the recommendations HTML
-    const recommendationsHtml = recommendations.map(recommendation => 
-      `<li style="margin-bottom: 10px; display: flex;">
-        <span style="color: #22c55e; margin-right: 10px;">✓</span>
-        <span>${recommendation}</span>
-      </li>`
-    ).join("");
-
-    // Format the email HTML
-    const emailHtml = `
-    <html>
-      <head>
-        <style>
-          body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            background-color: #f9fafb;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 0 auto; 
-            background-color: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-          }
-          .header { 
-            background-color: #7c3aed; 
-            color: white;
-            padding: 25px 30px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-weight: 600;
-            font-size: 24px;
-          }
-          .header p {
-            margin: 5px 0 0;
-            opacity: 0.9;
-            font-size: 16px;
-          }
-          .content {
-            padding: 30px;
-          }
-          .score-section {
-            text-align: center;
-            margin-bottom: 25px;
-          }
-          .score-value {
-            font-size: 48px;
-            font-weight: bold;
-            color: ${status.color};
-            margin: 5px 0;
-          }
-          .score-label {
-            display: inline-block;
-            background-color: ${status.color}25;
-            color: ${status.color};
-            padding: 5px 15px;
-            border-radius: 9999px;
-            font-weight: 500;
-            font-size: 14px;
-          }
-          .section {
-            margin-bottom: 25px;
-          }
-          .section-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-          }
-          .section-title-icon {
-            margin-right: 10px;
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            text-align: center;
-            line-height: 20px;
-          }
-          .summary {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 25px;
-            border: 1px solid #e2e8f0;
-          }
-          .footer {
-            text-align: center;
-            padding: 20px 30px;
-            color: #64748b;
-            font-size: 13px;
-            background-color: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-          }
-          ul {
-            padding-left: 0;
-            list-style-type: none;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Lead Qualification Summary</h1>
-            <p>${businessName}</p>
-          </div>
-          
-          <div class="content">
-            <div class="score-section">
-              <div class="score-value">${score}</div>
-              <div class="score-max">/100</div>
-              <span class="score-label">${status.text} Potential</span>
+    const emailResponse = await resend.emails.send({
+      from: "Qualification App <onboarding@resend.dev>",
+      to: [email],
+      subject: `Lead Qualification Summary: ${businessName}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="margin-bottom: 0;">Lead Qualification Summary</h1>
+              <p style="font-size: 18px; margin-top: 5px;">${businessName}</p>
             </div>
             
-            <div class="summary">
+            <div style="background-color: #f9f9f9; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <div style="display: inline-block; width: 120px; height: 120px; line-height: 120px; border-radius: 50%; background-color: ${scoreColor}; color: white; font-size: 36px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                  ${score}
+                </div>
+                <p style="font-size: 20px; font-weight: bold; margin: 0;">Qualification Score</p>
+              </div>
+              
+              <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-top: 20px;">Summary</h3>
               <p>${summary}</p>
+              
+              ${keyNeed ? `
+              <div style="background-color: #F3E8FF; border-radius: 6px; padding: 15px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #7E22CE;">Key Business Need: ${keyNeed}</h3>
+              </div>
+              ` : ''}
             </div>
             
-            <div class="section">
-              <h3 class="section-title">
-                <span class="section-title-icon" style="color: #3b82f6;">ℹ️</span>
-                Key Insights
-              </h3>
-              <ul>
-                ${insightsHtml}
-              </ul>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 30px;">
+              <div style="background-color: #f9f9f9; border-radius: 8px; padding: 20px;">
+                <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">Insights</h3>
+                <ul style="padding-left: 20px;">
+                  ${insightsList}
+                </ul>
+              </div>
+              
+              <div style="background-color: #f9f9f9; border-radius: 8px; padding: 20px;">
+                <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">Recommendations</h3>
+                <ul style="padding-left: 20px;">
+                  ${recommendationsList}
+                </ul>
+              </div>
             </div>
             
-            <div class="section">
-              <h3 class="section-title">
-                <span class="section-title-icon" style="color: #eab308;">💡</span>
-                Recommendations
-              </h3>
-              <ul>
-                ${recommendationsHtml}
-              </ul>
+            <div style="text-align: center; color: #666; font-size: 12px; margin-top: 40px;">
+              <p>This is an automated summary generated by your qualification tool.</p>
             </div>
-          </div>
-          
-          <div class="footer">
-            This is an automated summary from your Business Lead Qualification tool.
-            Please do not reply to this email.
-          </div>
-        </div>
-      </body>
-    </html>
-    `;
+          </body>
+        </html>
+      `,
+    });
 
-    console.log("Attempting to send email via Resend");
-    
-    // Send the email using Resend
-    try {
-      const emailResponse = await resend.emails.send({
-        from: "Lead Qualifier <onboarding@resend.dev>",
-        to: [email],
-        subject: `Lead Qualification Summary: ${businessName}`,
-        html: emailHtml,
-      });
-      
-      console.log("Email sent successfully:", emailResponse);
-      
-      return new Response(
-        JSON.stringify({ success: true, message: "Email sent successfully", data: emailResponse }),
-        {
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-          status: 200,
-        }
-      );
-    } catch (emailError) {
-      console.error("Resend email error:", emailError);
-      throw new Error(`Failed to send email: ${emailError.message}`);
-    }
-  } catch (error) {
+    console.log("Email sent successfully:", emailResponse);
+
+    return new Response(JSON.stringify(emailResponse), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
+  } catch (error: any) {
     console.error("Error in send-qualification-summary function:", error);
-    
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message || "Failed to send qualification summary email",
-      }),
+      JSON.stringify({ error: error.message }),
       {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   }
 };
-
-// Helper function to get qualification status
-function getQualificationStatus(score: number) {
-  if (score >= 80) return { text: "High", color: "#22c55e" };
-  if (score >= 60) return { text: "Medium", color: "#eab308" };
-  return { text: "Low", color: "#ef4444" };
-}
 
 serve(handler);
