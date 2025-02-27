@@ -110,33 +110,12 @@ export type Database = {
         }
         Relationships: []
       }
-      secret_api_keys: {
-        Row: {
-          api_key: string
-          created_at: string | null
-          id: number
-        }
-        Insert: {
-          api_key: string
-          created_at?: string | null
-          id?: never
-        }
-        Update: {
-          api_key?: string
-          created_at?: string | null
-          id?: never
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_shared_api_key: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
