@@ -87,7 +87,7 @@ export function EmailSummaryButton({ extractKeyNeed }: EmailSummaryButtonProps) 
       <Button 
         onClick={() => handleSendAllSummaries(false)}
         disabled={isSendingEmail}
-        className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white transition-all duration-300 flex items-center justify-center gap-2"
+        className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
       >
         {isSendingEmail ? (
           <>
@@ -106,7 +106,7 @@ export function EmailSummaryButton({ extractKeyNeed }: EmailSummaryButtonProps) 
         onClick={() => handleSendAllSummaries(true)}
         disabled={isSendingDetailed}
         variant="outline"
-        className="w-full max-w-2xl border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-2"
+        className="w-full max-w-2xl border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-2"
       >
         {isSendingDetailed ? (
           <>
