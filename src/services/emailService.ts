@@ -8,7 +8,7 @@ export interface QualificationSummaryEmailData {
   summary: string;
   insights: string[];
   recommendations: string[];
-  keyNeed?: string; // Renamed from challenge to keyNeed
+  keyNeed?: string;
 }
 
 export interface QualificationData {
@@ -20,12 +20,13 @@ export interface QualificationData {
   industry: string;
   annualRevenue?: string;
   createdAt: string;
-  keyNeed?: string; // Renamed from challenge to keyNeed
+  keyNeed?: string;
 }
 
 export interface MultipleQualificationsSummaryEmailData {
   email: string;
   qualifications: QualificationData[];
+  includeDetails?: boolean;
 }
 
 export async function sendQualificationSummary(data: QualificationSummaryEmailData) {

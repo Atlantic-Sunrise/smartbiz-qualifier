@@ -7,8 +7,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface QualificationData {
@@ -26,6 +25,7 @@ interface QualificationData {
 interface MultipleQualificationsSummaryEmailData {
   email: string;
   qualifications: QualificationData[];
+  includeDetails?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -35,14 +35,14 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const data: MultipleQualificationsSummaryEmailData = await req.json();
-    const { email, qualifications } = data;
+    const { email, qualifications, includeDetails = false } = data;
 
     if (!qualifications || qualifications.length === 0) {
       throw new Error("No qualifications provided for the email");
     }
 
     // Create a table for the qualifications overview
-    const tableRows = qualifications.map((qual, idx) => {
+    const tableRows = qualifications.map((qual) => {
       const scoreColor = qual.score >= 80 ? "#34D399" : qual.score >= 60 ? "#FBBF24" : "#EF4444";
       let formattedDate = "N/A";
       try {
@@ -93,8 +93,8 @@ const handler = async (req: Request): Promise<Response> => {
       </div>
     `;
 
-    // Detailed qualifications cards
-    const qualificationsHtml = qualifications.map((qual, index) => {
+    // Generate detailed reports HTML if requested
+    const detailedReportsHtml = includeDetails ? qualifications.map((qual) => {
       const scoreColor = qual.score >= 80 ? "#34D399" : qual.score >= 60 ? "#FBBF24" : "#EF4444";
       
       let formattedDate = "N/A";
@@ -106,12 +106,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       const insightsSummary = qual.insights
-        .slice(0, 2)
         .map((insight) => `<li style="margin-bottom: 8px;">${insight}</li>`)
         .join("");
         
       const recommendationsSummary = qual.recommendations
-        .slice(0, 2)
         .map((rec) => `<li style="margin-bottom: 8px;">${rec}</li>`)
         .join("");
 
@@ -146,7 +144,6 @@ const handler = async (req: Request): Promise<Response> => {
               <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; font-size: 16px;">Key Insights</h3>
               <ul style="padding-left: 20px; margin-top: 8px;">
                 ${insightsSummary}
-                ${qual.insights.length > 2 ? `<li style="list-style: none; font-style: italic; font-size: 13px;">+ ${qual.insights.length - 2} more</li>` : ''}
               </ul>
             </div>
             
@@ -154,18 +151,19 @@ const handler = async (req: Request): Promise<Response> => {
               <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; font-size: 16px;">Recommendations</h3>
               <ul style="padding-left: 20px; margin-top: 8px;">
                 ${recommendationsSummary}
-                ${qual.recommendations.length > 2 ? `<li style="list-style: none; font-style: italic; font-size: 13px;">+ ${qual.recommendations.length - 2} more</li>` : ''}
               </ul>
             </div>
           </div>
         </div>
       `;
-    }).join("");
+    }).join("") : '';
 
     const emailResponse = await resend.emails.send({
       from: "Qualification App <onboarding@resend.dev>",
       to: [email],
-      subject: `All Lead Qualifications Summary (${qualifications.length} leads)`,
+      subject: includeDetails 
+        ? `Detailed Lead Qualification Reports (${qualifications.length} leads)`
+        : `Lead Qualifications Summary Table (${qualifications.length} leads)`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -175,15 +173,11 @@ const handler = async (req: Request): Promise<Response> => {
           </head>
           <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="margin-bottom: 10px;">Lead Qualifications Summary</h1>
+              <h1 style="margin-bottom: 10px;">${includeDetails ? 'Detailed Lead Qualification Reports' : 'Lead Qualifications Summary'}</h1>
               <p style="font-size: 16px; color: #666;">A summary of all your qualified leads (${qualifications.length} total)</p>
             </div>
             
-            ${qualificationsTable}
-            
-            <h2 style="margin-top: 40px; margin-bottom: 20px; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #eee;">Detailed Qualification Reports</h2>
-            
-            ${qualificationsHtml}
+            ${includeDetails ? detailedReportsHtml : qualificationsTable}
             
             <div style="text-align: center; color: #666; font-size: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
               <p>This is an automated summary generated by your qualification tool.</p>
@@ -193,7 +187,7 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Multiple qualifications email sent successfully:", emailResponse);
+    console.log("Email sent successfully:", emailResponse);
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,

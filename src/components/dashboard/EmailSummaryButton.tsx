@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
+import { Mail, FileText } from "lucide-react";
 import { sendMultipleQualificationsSummary } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,11 +12,16 @@ interface EmailSummaryButtonProps {
 
 export function EmailSummaryButton({ extractKeyNeed }: EmailSummaryButtonProps) {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isSendingDetailed, setIsSendingDetailed] = useState(false);
   const { toast } = useToast();
 
-  const handleSendAllSummaries = async () => {
+  const handleSendAllSummaries = async (includeDetails: boolean) => {
     try {
-      setIsSendingEmail(true);
+      if (includeDetails) {
+        setIsSendingDetailed(true);
+      } else {
+        setIsSendingEmail(true);
+      }
       
       // Get current user's email
       const { data: { user } } = await supabase.auth.getUser();
@@ -47,18 +52,19 @@ export function EmailSummaryButton({ extractKeyNeed }: EmailSummaryButtonProps) 
         industry: qual.industry,
         annualRevenue: qual.annual_revenue,
         createdAt: qual.created_at,
-        keyNeed: qual.key_need || extractKeyNeed(qual) // Use stored value or extract it
+        keyNeed: qual.key_need || extractKeyNeed(qual)
       }));
       
       // Send the email
       await sendMultipleQualificationsSummary({
         email: user.email,
-        qualifications: allQualifications
+        qualifications: allQualifications,
+        includeDetails
       });
       
       toast({
         title: "Summary Sent",
-        description: `Summary of all lead qualifications has been sent to ${user.email}`,
+        description: `${includeDetails ? 'Detailed reports' : 'Summary'} has been sent to ${user.email}`,
       });
     } catch (error) {
       console.error("Error sending summaries:", error);
@@ -68,14 +74,18 @@ export function EmailSummaryButton({ extractKeyNeed }: EmailSummaryButtonProps) 
         variant: "destructive",
       });
     } finally {
-      setIsSendingEmail(false);
+      if (includeDetails) {
+        setIsSendingDetailed(false);
+      } else {
+        setIsSendingEmail(false);
+      }
     }
   };
 
   return (
-    <div className="flex justify-center w-full mt-8">
+    <div className="flex flex-col items-center w-full mt-8 space-y-4">
       <Button 
-        onClick={handleSendAllSummaries}
+        onClick={() => handleSendAllSummaries(false)}
         disabled={isSendingEmail}
         className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white transition-all duration-300 flex items-center justify-center gap-2"
       >
@@ -87,7 +97,26 @@ export function EmailSummaryButton({ extractKeyNeed }: EmailSummaryButtonProps) 
         ) : (
           <>
             <Mail className="h-4 w-4" />
-            Email All Summaries
+            Email Summary Table
+          </>
+        )}
+      </Button>
+
+      <Button 
+        onClick={() => handleSendAllSummaries(true)}
+        disabled={isSendingDetailed}
+        variant="outline"
+        className="w-full max-w-2xl border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center justify-center gap-2"
+      >
+        {isSendingDetailed ? (
+          <>
+            <FileText className="h-4 w-4 animate-pulse" />
+            Sending Detailed Reports...
+          </>
+        ) : (
+          <>
+            <FileText className="h-4 w-4" />
+            Send Detailed Reports
           </>
         )}
       </Button>
