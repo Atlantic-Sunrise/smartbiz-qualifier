@@ -6,6 +6,7 @@ import { BusinessProfileSetup } from "@/components/BusinessProfileSetup";
 import { ApiKeyForm } from "@/components/apikey/ApiKeyForm";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { useProfile } from "@/context/ProfileContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export function MainContent() {
   const [results, setResults] = useState<any>(null);
