@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { BusinessQualificationForm } from "@/components/BusinessQualificationForm";
 import { QualificationResults } from "@/components/QualificationResults";
 import { BusinessProfileSetup } from "@/components/BusinessProfileSetup";
+import { PreviousQualifications } from "@/components/PreviousQualifications";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -201,7 +202,12 @@ const Index = () => {
               </Card>
             ) : (
               <div className="space-y-8">
-                {!results && <BusinessQualificationForm onResults={setResults} />}
+                {!results && (
+                  <>
+                    <PreviousQualifications onSelectResult={setResults} />
+                    <BusinessQualificationForm onResults={setResults} />
+                  </>
+                )}
                 {results && <QualificationResults results={results} />}
                 {results && (
                   <div className="text-center">
