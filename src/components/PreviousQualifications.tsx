@@ -94,18 +94,18 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
         ) : (
           <div className="border rounded-md">
-            {/* Table wrapper with horizontal scrolling */}
-            <div className="overflow-x-auto pb-2">
-              <div className="inline-block min-w-full">
+            {/* Force table to have a minimum width that requires scrolling */}
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: '800px' }}>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-32">Company</TableHead>
-                      <TableHead className="w-28">Industry</TableHead>
-                      <TableHead className="w-28">Revenue</TableHead>
-                      <TableHead className="w-24">Score</TableHead>
-                      <TableHead className="w-32">Time</TableHead>
-                      <TableHead className="w-20 text-right">Actions</TableHead>
+                      <TableHead style={{ width: '200px' }}>Company</TableHead>
+                      <TableHead style={{ width: '150px' }}>Industry</TableHead>
+                      <TableHead style={{ width: '150px' }}>Revenue</TableHead>
+                      <TableHead style={{ width: '100px' }}>Score</TableHead>
+                      <TableHead style={{ width: '150px' }}>Time</TableHead>
+                      <TableHead style={{ width: '100px' }} className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -115,9 +115,9 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                         className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                         onClick={() => handleSelect(qualification)}
                       >
-                        <TableCell className="font-medium">{qualification.company_name}</TableCell>
-                        <TableCell>{qualification.industry}</TableCell>
-                        <TableCell>{qualification.annual_revenue}</TableCell>
+                        <TableCell className="font-medium truncate">{qualification.company_name}</TableCell>
+                        <TableCell className="truncate">{qualification.industry}</TableCell>
+                        <TableCell className="truncate">{qualification.annual_revenue}</TableCell>
                         <TableCell>
                           <span className={`font-semibold ${
                             qualification.qualification_score >= 80 ? "text-green-500" : 
