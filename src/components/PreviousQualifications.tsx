@@ -80,7 +80,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return null;
   }
 
-  // Get only the most recent two qualifications
+  // Always display the two most recent qualifications
   const recentQualifications = qualifications.slice(0, 2);
 
   return (
@@ -93,64 +93,94 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
         {isLoading ? (
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
         ) : (
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Industry</TableHead>
-                  <TableHead>Revenue</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentQualifications.map((qualification) => (
-                  <TableRow
+          <div className="border rounded-md flex">
+            {/* Left sidebar with scrollable list of all leads */}
+            <div className="w-52 border-r overflow-y-auto max-h-[250px] bg-gray-50 dark:bg-gray-800">
+              <div className="font-medium px-4 py-2 border-b bg-gray-100 dark:bg-gray-700 sticky top-0">
+                All Leads
+              </div>
+              <ul>
+                {qualifications.map((qualification) => (
+                  <li 
                     key={qualification.id}
-                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                    className="px-4 py-2 text-sm border-b last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                     onClick={() => handleSelect(qualification)}
                   >
-                    <TableCell className="font-medium">{qualification.company_name}</TableCell>
-                    <TableCell>{qualification.industry}</TableCell>
-                    <TableCell>{qualification.annual_revenue}</TableCell>
-                    <TableCell>
+                    <div className="font-medium truncate">{qualification.company_name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                      <span>{qualification.industry}</span>
                       <span className={`font-semibold ${
                         qualification.qualification_score >= 80 ? "text-green-500" : 
                         qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
                       }`}>
-                        {qualification.qualification_score}/100
+                        {qualification.qualification_score}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={isDeleting === qualification.id}
-                          onClick={(e) => handleDelete(qualification.id, e)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost" 
-                          size="sm"
-                          className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 p-1 h-auto"
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+            </div>
+            
+            {/* Right side with table showing most recent 2 leads */}
+            <div className="flex-1">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Industry</TableHead>
+                    <TableHead>Revenue</TableHead>
+                    <TableHead>Score</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentQualifications.map((qualification) => (
+                    <TableRow
+                      key={qualification.id}
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      onClick={() => handleSelect(qualification)}
+                    >
+                      <TableCell className="font-medium">{qualification.company_name}</TableCell>
+                      <TableCell>{qualification.industry}</TableCell>
+                      <TableCell>{qualification.annual_revenue}</TableCell>
+                      <TableCell>
+                        <span className={`font-semibold ${
+                          qualification.qualification_score >= 80 ? "text-green-500" : 
+                          qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
+                        }`}>
+                          {qualification.qualification_score}/100
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isDeleting === qualification.id}
+                            onClick={(e) => handleDelete(qualification.id, e)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost" 
+                            size="sm"
+                            className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 p-1 h-auto"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>
