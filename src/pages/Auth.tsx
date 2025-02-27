@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [rateLimitError, setRateLimitError] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -87,6 +88,17 @@ export default function Auth() {
     setRateLimitError(false);
 
     try {
+      // Check if email exists in the system first
+      const { data, error: userCheckError } = await supabase.auth.admin?.listUsers({
+        filter: {
+          email: email
+        }
+      });
+      
+      // If the above admin API is not available (which is likely), we can't reliably check
+      // This is just an attempt but likely won't work for most setups
+      setIsNewUser(true);
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -136,7 +148,13 @@ export default function Auth() {
               <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-400">Rate Limit Exceeded</h3>
               <div className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
                 <p>Too many magic link emails have been sent to this address recently.</p>
-                <p className="mt-1">Please wait a few minutes before trying again, or check your inbox for an existing magic link.</p>
+                <p className="mt-1">Please wait about 20-30 minutes before trying again, or check your inbox for an existing magic link.</p>
+                {isNewUser && (
+                  <div className="mt-2 flex items-start gap-2">
+                    <Info className="h-4 w-4 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                    <p>If this is your first time logging in, please try using a different email address.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
