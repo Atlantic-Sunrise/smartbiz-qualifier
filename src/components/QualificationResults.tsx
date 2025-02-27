@@ -128,6 +128,7 @@ export function QualificationResults({ results }: QualificationResultsProps) {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+            <p className="text-sm text-gray-500 mt-1 mb-2">Type in the field above or use voice input:</p>
           </div>
           
           <VoiceInput onFieldUpdate={handleVoiceInput} />
