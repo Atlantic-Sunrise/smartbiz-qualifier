@@ -100,29 +100,32 @@ export function MainContent() {
         <div className="space-y-8 w-full">
           {!results && (
             <>
-              {/* Previous Qualifications Section */}
-              <div className="w-full">
-                <PreviousQualifications onSelectResult={(result, name) => {
-                  setResults(result);
-                  setBusinessName(name);
-                }} />
-              </div>
-              
-              {/* Email All Summaries Button */}
-              <div className="flex justify-center w-full">
-                <Button 
-                  onClick={handleSendAllSummaries}
-                  disabled={isSendingEmail}
-                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <Mail className="h-4 w-4" />
-                  {isSendingEmail ? "Sending..." : "Email All Summaries"}
-                </Button>
-              </div>
-              
-              {/* Business Qualification Form */}
+              {/* Business Qualification Form - Now at the top */}
               <div className="w-full">
                 <BusinessQualificationForm onResults={handleResults} />
+              </div>
+              
+              {/* Bottom section with Previous Qualifications and Email button */}
+              <div className="flex flex-col items-center space-y-8 mt-12">
+                {/* Email All Summaries Button */}
+                <div className="flex justify-center w-full">
+                  <Button 
+                    onClick={handleSendAllSummaries}
+                    disabled={isSendingEmail}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {isSendingEmail ? "Sending..." : "Email All Summaries"}
+                  </Button>
+                </div>
+                
+                {/* Previous Qualifications Section */}
+                <div className="w-full max-w-4xl mx-auto">
+                  <PreviousQualifications onSelectResult={(result, name) => {
+                    setResults(result);
+                    setBusinessName(name);
+                  }} />
+                </div>
               </div>
             </>
           )}

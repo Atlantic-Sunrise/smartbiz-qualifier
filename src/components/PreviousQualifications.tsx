@@ -74,12 +74,12 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   }
 
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
+    <div className="w-full text-center">
+      <div className="flex justify-center items-center mb-4">
         <h2 className="text-xl font-semibold">Previous Qualifications</h2>
       </div>
       
-      <div className="w-full flex justify-end">
+      <div className="w-full flex justify-center">
         {isLoading ? (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
             {[1, 2, 3].map((i) => (
