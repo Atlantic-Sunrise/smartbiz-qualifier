@@ -110,11 +110,7 @@ export function MainContent() {
               <div className="flex flex-col items-center space-y-8 mt-12">
                 {/* Previous Qualifications Section */}
                 <div className="w-full max-w-4xl mx-auto">
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-semibold text-center">Lead Qualifications</h2>
-                  </div>
-                  
-                  {/* Email All Summaries Button - Now positioned at the bottom of the qualifications section */}
+                  {/* Email All Summaries Button */}
                   <div className="flex justify-center w-full mb-6">
                     <Button 
                       onClick={handleSendAllSummaries}
