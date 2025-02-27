@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Eye, ChevronDown, ChevronUp, Trash2, AlertCircle, XCircle, CheckCircle } from "lucide-react";
+import { Eye, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 export function PreviousQualifications({ onSelectResult }: { onSelectResult: (result: any) => void }) {
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean, id: string | null }>({ 
+    isOpen: false, 
+    id: null 
+  });
   const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
@@ -37,18 +40,18 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
     }
   };
 
-  const handleDeleteRequest = (id: string) => {
-    setConfirmDeleteId(id);
+  const openDeleteConfirmation = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, id });
   };
 
-  const handleCancelDelete = () => {
-    setConfirmDeleteId(null);
+  const closeDeleteConfirmation = () => {
+    setDeleteConfirmation({ isOpen: false, id: null });
   };
 
-  const handleConfirmDelete = async (id: string) => {
+  const handleDelete = async (id: string) => {
     try {
       setDeletingId(id);
-      setConfirmDeleteId(null);
+      closeDeleteConfirmation();
       await deleteQualification(id);
       
       // Remove the deleted qualification from the state
@@ -135,39 +138,15 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
               >
                 <Eye className="h-4 w-4" />
               </Button>
-              
-              {confirmDeleteId === qual.id ? (
-                <div className="flex items-center gap-1 bg-red-50 dark:bg-red-900/20 p-1 rounded-md">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-green-500 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                    onClick={() => handleConfirmDelete(qual.id)}
-                    disabled={deletingId === qual.id}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    onClick={handleCancelDelete}
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  disabled={deletingId === qual.id || confirmDeleteId !== null}
-                  onClick={() => handleDeleteRequest(qual.id)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                disabled={deletingId === qual.id || deleteConfirmation.isOpen}
+                onClick={() => openDeleteConfirmation(qual.id)}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         ))}
@@ -191,6 +170,32 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
             </>
           )}
         </Button>
+      )}
+      
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-semibold mb-2">Confirm Delete</h3>
+            <p className="mb-4 text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete this qualification? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={closeDeleteConfirmation}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteConfirmation.id && handleDelete(deleteConfirmation.id)}
+                disabled={deletingId !== null}
+              >
+                {deletingId === deleteConfirmation.id ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </Card>
   );
