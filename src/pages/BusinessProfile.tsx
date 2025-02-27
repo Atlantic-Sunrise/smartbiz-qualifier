@@ -207,22 +207,33 @@ export default function BusinessProfile() {
       // Create a unique file path
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `logos/${fileName}`;
+      const filePath = `${fileName}`; // Simplified path without subfolder
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      // Upload to Supabase Storage - using the correct bucket name
+      console.log("Attempting to upload to bucket 'business-assets'");
+      const { data, error: uploadError } = await supabase.storage
         .from('business-assets')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Error uploading logo:', uploadError);
+        throw uploadError;
+      }
+
+      console.log("Upload successful, data:", data);
 
       // Get the public URL for the uploaded file
-      const { data: { publicUrl } } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('business-assets')
         .getPublicUrl(filePath);
 
+      console.log("Public URL data:", urlData);
+      
       // Update form data with the new logo URL
-      setFormData(prev => ({ ...prev, logoUrl: publicUrl }));
+      setFormData(prev => ({ ...prev, logoUrl: urlData.publicUrl }));
       
       toast({
         title: "Logo Uploaded",
@@ -233,7 +244,7 @@ export default function BusinessProfile() {
       toast({
         variant: "destructive", 
         title: "Upload Failed",
-        description: "There was a problem uploading your logo. Please try again.",
+        description: error.message || "There was a problem uploading your logo. Please try again.",
       });
     } finally {
       setUploadingLogo(false);
