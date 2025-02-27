@@ -105,9 +105,9 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
   };
   
   // Determine the primary challenge based on the qualification data
-  const extractChallenge = (): string => {
-    // Common business challenge categories
-    const challengeKeywords: Record<string, string[]> = {
+  const extractKeyNeed = (): string => {
+    // Common business need categories
+    const needKeywords: Record<string, string[]> = {
       "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
       "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
       "finance": ["finance", "funding", "cash flow", "investment", "budget", "cost", "profit", "pricing"],
@@ -128,7 +128,7 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
     let bestCategory = "growth"; // Default
     let highestMatches = 0;
     
-    for (const [category, keywords] of Object.entries(challengeKeywords)) {
+    for (const [category, keywords] of Object.entries(needKeywords)) {
       const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
       if (matches > highestMatches) {
         highestMatches = matches;
@@ -150,8 +150,8 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         throw new Error("User email not found. Please ensure you're logged in.");
       }
       
-      // Get the challenge
-      const challenge = extractChallenge();
+      // Get the key need
+      const keyNeed = extractKeyNeed();
       
       // Send the email
       await sendQualificationSummary({
@@ -161,7 +161,7 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         summary: results.summary,
         insights: results.insights,
         recommendations: results.recommendations,
-        challenge: challenge // Include the challenge in the email data
+        keyNeed: keyNeed // Use keyNeed instead of challenge
       });
       
       toast({
