@@ -79,7 +79,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
         <h2 className="text-xl font-semibold">Previous Qualifications</h2>
       </div>
       
-      <div className="w-full flex justify-center">
+      <div className="w-full flex justify-end">
         {isLoading ? (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full">
             {[1, 2, 3].map((i) => (
