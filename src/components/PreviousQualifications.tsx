@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PreviousQualificationsProps {
   onSelectResult: (results: any, businessName: string) => void;
@@ -20,6 +31,8 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [qualificationToDelete, setQualificationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -38,13 +51,19 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const confirmDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the row click
+    setQualificationToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!qualificationToDelete) return;
     
     try {
-      setIsDeleting(id);
-      await deleteQualification(id);
-      setQualifications(qualifications.filter(q => q.id !== id));
+      setIsDeleting(qualificationToDelete);
+      await deleteQualification(qualificationToDelete);
+      setQualifications(qualifications.filter(q => q.id !== qualificationToDelete));
       
       toast({
         title: "Deleted",
@@ -59,6 +78,8 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
       });
     } finally {
       setIsDeleting(null);
+      setDeleteDialogOpen(false);
+      setQualificationToDelete(null);
     }
   };
 
@@ -164,7 +185,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                             variant="ghost"
                             size="sm"
                             disabled={isDeleting === qualification.id}
-                            onClick={(e) => handleDelete(qualification.id, e)}
+                            onClick={(e) => confirmDelete(qualification.id, e)}
                             className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -187,6 +208,24 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this qualification? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
