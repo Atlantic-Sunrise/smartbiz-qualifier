@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // Define CORS headers
 const corsHeaders = {
@@ -30,11 +32,6 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
     // Get the request body
     const data: MultipleQualificationsSummaryEmailData = await req.json();
     const { email, qualifications } = data;
@@ -261,19 +258,16 @@ const handler = async (req: Request): Promise<Response> => {
     </html>
     `;
 
-    // Send the email using Supabase Edge Function
-    const { error } = await supabaseClient.auth.admin.sendRawEmail({
-      email,
+    // Send the email using Resend
+    const response = await resend.emails.send({
+      from: "Lead Qualifier <onboarding@resend.dev>",
+      to: [email],
       subject: "Lead Qualification Summary Report - All Leads",
-      body: emailHtml,
+      html: emailHtml,
     });
 
-    if (error) {
-      throw error;
-    }
-
     return new Response(
-      JSON.stringify({ success: true, message: "Email sent successfully" }),
+      JSON.stringify({ success: true, message: "Email sent successfully", data: response }),
       {
         headers: { "Content-Type": "application/json", ...corsHeaders },
         status: 200,
