@@ -30,6 +30,43 @@ export function MainContent() {
     setBusinessName(companyName);
   };
 
+  // Extract a one-word challenge from the qualification data
+  const extractChallenge = (qualification: any): string => {
+    // Common business challenge categories
+    const challengeKeywords: Record<string, string[]> = {
+      "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
+      "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
+      "finance": ["finance", "funding", "cash flow", "investment", "budget", "cost", "profit", "pricing"],
+      "operations": ["operations", "efficiency", "process", "workflow", "productivity", "logistics"],
+      "talent": ["talent", "hiring", "recruitment", "staff", "employee", "retention", "team", "workforce"],
+      "technology": ["technology", "digital", "software", "automation", "integration", "infrastructure", "IT"],
+      "competition": ["competition", "competitive", "market", "industry", "disruption"],
+      "innovation": ["innovation", "product", "development", "R&D", "creative", "design"],
+      "compliance": ["compliance", "regulation", "legal", "policy", "standard"],
+      "strategy": ["strategy", "planning", "direction", "vision", "mission", "pivot"]
+    };
+
+    // Create a text to analyze from the qualification data
+    const text = (qualification.qualification_summary || "") + " " + 
+                 (qualification.qualification_insights || []).join(" ") + " " + 
+                 (qualification.qualification_recommendations || []).join(" ");
+    const lowerText = text.toLowerCase();
+    
+    // Find which category has the most keyword matches
+    let bestCategory = "growth"; // Default
+    let highestMatches = 0;
+    
+    for (const [category, keywords] of Object.entries(challengeKeywords)) {
+      const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
+      if (matches > highestMatches) {
+        highestMatches = matches;
+        bestCategory = category;
+      }
+    }
+    
+    return bestCategory.charAt(0).toUpperCase() + bestCategory.slice(1);
+  };
+
   const handleSendAllSummaries = async () => {
     try {
       setIsSendingEmail(true);
@@ -62,7 +99,8 @@ export function MainContent() {
         recommendations: qual.qualification_recommendations,
         industry: qual.industry,
         annualRevenue: qual.annual_revenue,
-        createdAt: qual.created_at
+        createdAt: qual.created_at,
+        challenge: extractChallenge(qual) // Add the challenge
       }));
       
       // Send the email

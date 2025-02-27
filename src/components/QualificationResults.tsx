@@ -103,6 +103,41 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
   const handleVoiceInput = (transcript: string) => {
     setQuestion(transcript);
   };
+  
+  // Determine the primary challenge based on the qualification data
+  const extractChallenge = (): string => {
+    // Common business challenge categories
+    const challengeKeywords: Record<string, string[]> = {
+      "growth": ["growth", "scale", "expand", "acquisition", "customer", "revenue", "sales", "market share"],
+      "marketing": ["marketing", "branding", "advertising", "visibility", "promotion", "awareness"],
+      "finance": ["finance", "funding", "cash flow", "investment", "budget", "cost", "profit", "pricing"],
+      "operations": ["operations", "efficiency", "process", "workflow", "productivity", "logistics"],
+      "talent": ["talent", "hiring", "recruitment", "staff", "employee", "retention", "team", "workforce"],
+      "technology": ["technology", "digital", "software", "automation", "integration", "infrastructure", "IT"],
+      "competition": ["competition", "competitive", "market", "industry", "disruption"],
+      "innovation": ["innovation", "product", "development", "R&D", "creative", "design"],
+      "compliance": ["compliance", "regulation", "legal", "policy", "standard"],
+      "strategy": ["strategy", "planning", "direction", "vision", "mission", "pivot"]
+    };
+
+    // Combine summary and insights into a single text to analyze
+    const text = results.summary + " " + results.insights.join(" ") + " " + results.recommendations.join(" ");
+    const lowerText = text.toLowerCase();
+    
+    // Find which category has the most keyword matches
+    let bestCategory = "growth"; // Default
+    let highestMatches = 0;
+    
+    for (const [category, keywords] of Object.entries(challengeKeywords)) {
+      const matches = keywords.filter(keyword => lowerText.includes(keyword)).length;
+      if (matches > highestMatches) {
+        highestMatches = matches;
+        bestCategory = category;
+      }
+    }
+    
+    return bestCategory.charAt(0).toUpperCase() + bestCategory.slice(1);
+  };
 
   const handleSendSummary = async () => {
     try {
@@ -115,6 +150,9 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         throw new Error("User email not found. Please ensure you're logged in.");
       }
       
+      // Get the challenge
+      const challenge = extractChallenge();
+      
       // Send the email
       await sendQualificationSummary({
         email: user.email,
@@ -122,7 +160,8 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         score: results.score,
         summary: results.summary,
         insights: results.insights,
-        recommendations: results.recommendations
+        recommendations: results.recommendations,
+        challenge: challenge // Include the challenge in the email data
       });
       
       toast({

@@ -8,6 +8,7 @@ export interface QualificationSummaryEmailData {
   summary: string;
   insights: string[];
   recommendations: string[];
+  challenge?: string; // Add the challenge field
 }
 
 export interface QualificationData {
@@ -19,6 +20,7 @@ export interface QualificationData {
   industry: string;
   annualRevenue?: string;
   createdAt: string;
+  challenge?: string; // Add the challenge field
 }
 
 export interface MultipleQualificationsSummaryEmailData {
