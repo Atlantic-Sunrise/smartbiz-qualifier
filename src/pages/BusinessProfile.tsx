@@ -72,7 +72,7 @@ export default function BusinessProfile() {
   return (
     <PageContainer>
       <div className="w-full max-w-4xl mx-auto">
-        <PageTitle title="Business Profile" />
+        <PageTitle />
         <Card className="w-full p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
