@@ -23,17 +23,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error getting user:', userError);
+        throw userError;
+      }
+      
       if (!user) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No user found. Please sign in again.",
-        });
-        navigate("/auth");
+        console.log("No authenticated user found");
+        setLoading(false);
         return;
       }
 
+      console.log("Fetching profile for user:", user.id);
+      
+      // Fetch profile data for this user
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -41,16 +47,41 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to fetch profile data",
-        });
-        return;
+        // If the error is that no rows were returned, it might mean the profile doesn't exist yet
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, might need to be created');
+          
+          // Try to create a profile
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([{ id: user.id }]);
+            
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+            throw insertError;
+          }
+          
+          // Fetch the newly created profile
+          const { data: newProfile, error: newProfileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+            
+          if (newProfileError) {
+            console.error('Error fetching new profile:', newProfileError);
+            throw newProfileError;
+          }
+          
+          setProfile(newProfile);
+        } else {
+          console.error('Error fetching profile:', error);
+          throw error;
+        }
+      } else {
+        console.log("Profile data retrieved:", data);
+        setProfile(data);
       }
-      
-      setProfile(data);
       
       // Never show API key input, as we've removed that feature
       setShowApiKeyInput(false);
@@ -59,7 +90,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load profile data",
+        description: "Failed to load profile data. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -67,7 +98,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchProfile();
+    // Only fetch profile if we're not on the auth page
+    if (window.location.pathname !== '/auth') {
+      fetchProfile();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   return (
