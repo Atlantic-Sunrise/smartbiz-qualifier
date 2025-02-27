@@ -1,15 +1,11 @@
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { BusinessFormData } from "@/constants/businessFormConstants";
 import { supabase } from "@/integrations/supabase/client";
 import { FirecrawlService } from '@/utils/FirecrawlService';
 
-// This should be replaced with your organization's API key in a production environment
-const FALLBACK_API_KEY = "AIzaSyDuUVqRJnbP9UZdWONDvnRBzr6xDKN9xRc"; // Demo API key with usage limits
-
 export async function analyzeBusinessLead(data: BusinessFormData) {
-  // Try to get user's personal API key first, then fall back to the organization key
-  const apiKey = localStorage.getItem('gemini_api_key') || FALLBACK_API_KEY;
+  // Try to get user's personal API key first, then use the Edge Function for shared key
+  const personalApiKey = localStorage.getItem('gemini_api_key');
   
   // Get the user's business profile
   const { data: { user } } = await supabase.auth.getUser();
@@ -34,54 +30,42 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     }
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-  const prompt = `As an expert business analyst, analyze this lead in the context of the qualifying business.
-
-    Qualifying Business:
-    Company: ${profile?.company_name}
-    Industry: ${profile?.industry}
-    Size: ${profile?.employee_count}
-    Revenue: ${profile?.annual_revenue}
-    Services: ${profile?.business_services}
-    
-    Lead to Qualify:
-    Company: ${data.companyName}
-    Industry: ${data.industry}
-    Employees: ${data.employeeCount}
-    Annual Revenue: ${data.annualRevenue}
-    Website: ${data.website}
-    Main Challenges: ${data.challenges}
-    
-    ${websiteData}
-    
-    Consider factors like industry alignment, business size compatibility, potential synergies between our services and their needs, and whether we can address their challenges. Also analyze any relevant information found from their website.
-    
-    Provide a JSON response with this exact format:
-    {
-      "score": number between 0-100,
-      "summary": "brief qualification summary",
-      "insights": ["insight1", "insight2", "insight3"],
-      "recommendations": ["rec1", "rec2", "rec3"]
-    }`;
+  // Prepare the input for analysis
+  const analysisInput = {
+    businessProfile: {
+      company: profile?.company_name,
+      industry: profile?.industry,
+      size: profile?.employee_count,
+      revenue: profile?.annual_revenue,
+      services: profile?.business_services
+    },
+    leadData: {
+      company: data.companyName,
+      industry: data.industry,
+      employees: data.employeeCount,
+      revenue: data.annualRevenue,
+      website: data.website,
+      challenges: data.challenges
+    },
+    websiteData: websiteData,
+    personalApiKey: personalApiKey
+  };
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-      throw new Error("Could not parse AI response");
+    // Call the Edge Function that will handle the API key securely
+    const { data: result, error } = await supabase.functions.invoke(
+      'analyze-lead', 
+      { body: analysisInput }
+    );
+
+    if (error) {
+      console.error("Error calling analyze-lead function:", error);
+      throw new Error("AI service unavailable. Please try again later.");
     }
+
+    return result;
   } catch (error) {
-    console.error("Error with Gemini API:", error);
+    console.error("Error with AI Analysis:", error);
     throw new Error("AI service unavailable. Please try again later or provide your own API key in settings.");
   }
 }
