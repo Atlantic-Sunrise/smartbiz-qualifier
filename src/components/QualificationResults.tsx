@@ -9,7 +9,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Send, Mail } from "lucide-react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useToast } from "./ui/use-toast";
 import { sendQualificationSummary } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,11 +37,6 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
     
     setIsLoading(true);
     try {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      if (!apiKey) {
-        throw new Error("Gemini API key not found. Please add your API key in the settings.");
-      }
-      
       // Create context from results
       const context = `
         Score: ${results.score}/100
@@ -51,50 +45,28 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         Recommendations: ${results.recommendations.join(", ")}
       `;
       
-      // Initialize the Gemini API
-      const genAI = new GoogleGenerativeAI(apiKey);
-      // Updated to use the current model name
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // Call the Supabase edge function instead of using client-side API key
+      const { data, error } = await supabase.functions.invoke('answer-question', {
+        body: {
+          question: question,
+          context: context
+        }
+      });
+
+      if (error) {
+        throw new Error("Failed to generate answer. Please try again.");
+      }
       
-      // Create the prompt that includes both context and user question
-      const prompt = `
-        You are a business lead qualification expert. I'm going to provide you with information 
-        about a qualified business lead and then ask you a question about it.
-        
-        Here is the lead qualification information:
-        ${context}
-        
-        Based on this information, please answer the following question:
-        ${question}
-        
-        Provide a concise, professional response focused on actionable insights. Limit your 
-        response to 3-4 sentences.
-      `;
-      
-      // Generate content
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const generatedText = response.text();
-      
-      setAnswer(generatedText);
+      setAnswer(data.answer);
     } catch (error) {
       console.error("Error generating answer:", error);
+      setAnswer("Sorry, I couldn't process your question. Please try again later.");
       
-      // Provide a more user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : "Please try again.";
-      const isApiVersionError = errorMessage.includes("models/gemini-pro is not found") || 
-                               errorMessage.includes("not supported for generateContent");
-      
-      if (isApiVersionError) {
-        toast({
-          title: "API Error",
-          description: "The Gemini model is outdated or unavailable. Please update your API key to use the latest version.",
-          variant: "destructive",
-        });
-        setAnswer("Sorry, there's an issue with the Gemini API. The model might be outdated or unavailable. Please update your API key or try again later.");
-      } else {
-        setAnswer(`Sorry, I couldn't process your question. ${errorMessage}`);
-      }
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate an answer",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
