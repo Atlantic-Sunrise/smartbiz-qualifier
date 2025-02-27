@@ -83,7 +83,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   return (
     <div className="w-full">
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-center">Lead Qualifications</h2>
+        <h2 className="text-2xl font-semibold text-center">Recent Lead Qualifications</h2>
       </div>
       
       <div className="w-full">
