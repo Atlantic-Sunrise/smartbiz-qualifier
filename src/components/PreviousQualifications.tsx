@@ -80,6 +80,9 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return null;
   }
 
+  // Get only the most recent two qualifications
+  const recentQualifications = qualifications.slice(0, 2);
+
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -90,9 +93,9 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
         {isLoading ? (
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
         ) : (
-          <div className="max-h-[400px] overflow-auto border rounded-md">
+          <div className="border rounded-md">
             <Table>
-              <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+              <TableHeader>
                 <TableRow>
                   <TableHead>Company</TableHead>
                   <TableHead>Industry</TableHead>
@@ -103,7 +106,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {qualifications.map((qualification) => (
+                {recentQualifications.map((qualification) => (
                   <TableRow
                     key={qualification.id}
                     className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
