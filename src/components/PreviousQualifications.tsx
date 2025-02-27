@@ -80,9 +80,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return null;
   }
 
-  // Always display the two most recent qualifications
-  const recentQualifications = qualifications.slice(0, 2);
-
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -94,82 +91,66 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
         ) : (
           <div className="border rounded-md">
-            {/* Force table to have a minimum width that requires scrolling */}
-            <div className="overflow-x-auto">
-              <div style={{ minWidth: '800px' }}>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead style={{ width: '200px' }}>Company</TableHead>
-                      <TableHead style={{ width: '150px' }}>Industry</TableHead>
-                      <TableHead style={{ width: '150px' }}>Revenue</TableHead>
-                      <TableHead style={{ width: '100px' }}>Score</TableHead>
-                      <TableHead style={{ width: '150px' }}>Time</TableHead>
-                      <TableHead style={{ width: '100px' }} className="text-right">Actions</TableHead>
+            {/* Excel-like table with both horizontal and vertical scrollbars */}
+            <div className="overflow-auto max-h-[300px]" style={{ maxWidth: '100%' }}>
+              <Table>
+                <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
+                  <TableRow>
+                    <TableHead className="min-w-[150px]">Company</TableHead>
+                    <TableHead className="min-w-[120px]">Industry</TableHead>
+                    <TableHead className="min-w-[100px]">Revenue</TableHead>
+                    <TableHead className="min-w-[80px]">Score</TableHead>
+                    <TableHead className="min-w-[120px]">Time</TableHead>
+                    <TableHead className="min-w-[100px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {qualifications.map((qualification) => (
+                    <TableRow
+                      key={qualification.id}
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      onClick={() => handleSelect(qualification)}
+                    >
+                      <TableCell className="font-medium whitespace-nowrap">{qualification.company_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{qualification.industry}</TableCell>
+                      <TableCell className="whitespace-nowrap">{qualification.annual_revenue}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className={`font-semibold ${
+                          qualification.qualification_score >= 80 ? "text-green-500" : 
+                          qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
+                        }`}>
+                          {qualification.qualification_score}/100
+                        </span>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
+                      </TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isDeleting === qualification.id}
+                            onClick={(e) => handleDelete(qualification.id, e)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost" 
+                            size="sm"
+                            className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 p-1 h-auto"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentQualifications.map((qualification) => (
-                      <TableRow
-                        key={qualification.id}
-                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
-                        onClick={() => handleSelect(qualification)}
-                      >
-                        <TableCell className="font-medium truncate">{qualification.company_name}</TableCell>
-                        <TableCell className="truncate">{qualification.industry}</TableCell>
-                        <TableCell className="truncate">{qualification.annual_revenue}</TableCell>
-                        <TableCell>
-                          <span className={`font-semibold ${
-                            qualification.qualification_score >= 80 ? "text-green-500" : 
-                            qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
-                          }`}>
-                            {qualification.qualification_score}/100
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={isDeleting === qualification.id}
-                              onClick={(e) => handleDelete(qualification.id, e)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                            
-                            <Button
-                              variant="ghost" 
-                              size="sm"
-                              className="text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 p-1 h-auto"
-                            >
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            
-            {/* Pagination indicators to show there are more leads */}
-            {qualifications.length > 2 && (
-              <div className="flex justify-center mt-2 mb-2 gap-1">
-                {qualifications.map((_, index) => (
-                  <div 
-                    key={index} 
-                    className={`h-1.5 rounded-full ${
-                      index < 2 ? 'w-4 bg-gray-400' : 'w-2 bg-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         )}
       </div>
