@@ -76,9 +76,9 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
 
   // Extract a one-word key need from the qualification data
   const extractKeyNeed = (qualification: any): string => {
-    // Return the stored challenge if it exists
-    if (qualification.challenge) {
-      return qualification.challenge;
+    // Return the stored key_need if it exists
+    if (qualification.key_need) {
+      return qualification.key_need;
     }
     
     // Common business need categories
@@ -163,7 +163,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-medium">
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                          {extractKeyNeed(qualification)}
+                          {qualification.key_need || extractKeyNeed(qualification)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right whitespace-nowrap">

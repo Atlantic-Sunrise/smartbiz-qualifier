@@ -180,6 +180,9 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
     }
   };
 
+  // Extract key need once for the component
+  const keyNeed = extractKeyNeed();
+
   return (
     <div className="space-y-8">
       <Card className="p-6">
@@ -202,7 +205,7 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
 
       <div className="grid gap-6 md:grid-cols-2">
         <InsightsList insights={results.insights} />
-        <RecommendationsList recommendations={results.recommendations} />
+        <RecommendationsList recommendations={results.recommendations} keyNeed={keyNeed} />
       </div>
 
       <Card className="p-6">
