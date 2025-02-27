@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 // Define CORS headers
 const corsHeaders = {
@@ -18,39 +20,56 @@ interface QualificationSummaryEmailData {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("Edge function invoked: send-qualification-summary");
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
+    console.log("Parsing request body");
+    
     // Get the request body
-    const emailData: QualificationSummaryEmailData = await req.json();
-    const { email, businessName, score, summary, insights, recommendations } = emailData;
+    const data: QualificationSummaryEmailData = await req.json();
+    const { email, businessName, score, summary, insights, recommendations } = data;
+
+    console.log(`Received request to send summary to: ${email}`);
+    console.log(`Business Name: ${businessName}, Score: ${score}`);
 
     if (!email) {
       throw new Error("Email is required");
     }
 
-    // Create HTML lists for insights and recommendations
-    const insightsHtml = insights.map(insight => `<li style="margin-bottom: 8px;">${insight}</li>`).join("");
-    const recommendationsHtml = recommendations.map(rec => `<li style="margin-bottom: 8px;">${rec}</li>`).join("");
-
-    // Get the qualification status based on score
-    const getQualificationStatus = (score: number) => {
-      if (score >= 80) return { text: "High Potential", color: "#22c55e" };
-      if (score >= 60) return { text: "Medium Potential", color: "#eab308" };
-      return { text: "Low Potential", color: "#ef4444" };
-    };
+    // Verify Resend API Key
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    console.log(`Resend API Key present: ${Boolean(apiKey)}`);
     
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is not set");
+    }
+
+    // Get qualification status
     const status = getQualificationStatus(score);
 
-    // Format the email HTML with a clean, professional design
+    // Format the insights HTML
+    const insightsHtml = insights.map(insight => 
+      `<li style="margin-bottom: 10px; display: flex;">
+        <span style="color: #22c55e; margin-right: 10px;">✓</span>
+        <span>${insight}</span>
+      </li>`
+    ).join("");
+
+    // Format the recommendations HTML
+    const recommendationsHtml = recommendations.map(recommendation => 
+      `<li style="margin-bottom: 10px; display: flex;">
+        <span style="color: #22c55e; margin-right: 10px;">✓</span>
+        <span>${recommendation}</span>
+      </li>`
+    ).join("");
+
+    // Format the email HTML
     const emailHtml = `
     <html>
       <head>
@@ -64,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
             padding: 0;
           }
           .container { 
-            max-width: 650px; 
+            max-width: 600px; 
             margin: 0 auto; 
             background-color: #ffffff;
             border-radius: 8px;
@@ -85,56 +104,29 @@ const handler = async (req: Request): Promise<Response> => {
           .header p {
             margin: 5px 0 0;
             opacity: 0.9;
+            font-size: 16px;
           }
           .content {
             padding: 30px;
           }
-          .score-card {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 20px;
+          .score-section {
             text-align: center;
             margin-bottom: 25px;
-            border: 1px solid #e2e8f0;
           }
-          .score-value { 
-            font-size: 48px; 
+          .score-value {
+            font-size: 48px;
             font-weight: bold;
             color: ${status.color};
-            margin: 0;
+            margin: 5px 0;
           }
           .score-label {
-            font-size: 18px;
-            color: #64748b;
-            margin: 0;
-          }
-          .status-badge {
             display: inline-block;
             background-color: ${status.color}25;
             color: ${status.color};
-            padding: 4px 12px;
+            padding: 5px 15px;
             border-radius: 9999px;
-            font-size: 14px;
             font-weight: 500;
-            margin-top: 10px;
-          }
-          .summary-card {
-            background-color: #f8fafc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid #e2e8f0;
-          }
-          .summary-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #1e293b;
-          }
-          .summary-text {
-            margin: 0;
-            color: #475569;
+            font-size: 14px;
           }
           .section {
             margin-bottom: 25px;
@@ -144,34 +136,23 @@ const handler = async (req: Request): Promise<Response> => {
             font-weight: 600;
             margin-bottom: 15px;
             color: #1e293b;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
           }
-          .insights-list, .recommendations-list {
-            margin: 0;
-            padding: 0 0 0 20px;
-            color: #475569;
+          .section-title-icon {
+            margin-right: 10px;
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
           }
-          .results-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 25px;
+          .summary {
+            background-color: #f8fafc;
             border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          }
-          .results-table th, .results-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-          }
-          .results-table th {
-            background-color: #f1f5f9;
-            font-weight: 600;
-            color: #334155;
-          }
-          .results-table tr:last-child td {
-            border-bottom: none;
+            padding: 15px;
+            margin-bottom: 25px;
+            border: 1px solid #e2e8f0;
           }
           .footer {
             text-align: center;
@@ -181,59 +162,46 @@ const handler = async (req: Request): Promise<Response> => {
             background-color: #f8fafc;
             border-top: 1px solid #e2e8f0;
           }
+          ul {
+            padding-left: 0;
+            list-style-type: none;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
             <h1>Lead Qualification Summary</h1>
-            <p>for ${businessName}</p>
+            <p>${businessName}</p>
           </div>
           
           <div class="content">
-            <div class="score-card">
-              <p class="score-label">Qualification Score</p>
-              <p class="score-value">${score}<span style="font-size: 24px; color: #94a3b8;">/100</span></p>
-              <div class="status-badge">${status.text}</div>
+            <div class="score-section">
+              <div class="score-value">${score}</div>
+              <div class="score-max">/100</div>
+              <span class="score-label">${status.text} Potential</span>
             </div>
             
-            <div class="summary-card">
-              <h3 class="summary-title">Executive Summary</h3>
-              <p class="summary-text">${summary}</p>
-            </div>
-            
-            <div class="section">
-              <h3 class="section-title">Full Qualification Results</h3>
-              <table class="results-table">
-                <tr>
-                  <th>Category</th>
-                  <th>Details</th>
-                </tr>
-                <tr>
-                  <td><strong>Business Name</strong></td>
-                  <td>${businessName}</td>
-                </tr>
-                <tr>
-                  <td><strong>Qualification Score</strong></td>
-                  <td>${score}/100 (${status.text})</td>
-                </tr>
-                <tr>
-                  <td><strong>Summary</strong></td>
-                  <td>${summary}</td>
-                </tr>
-              </table>
+            <div class="summary">
+              <p>${summary}</p>
             </div>
             
             <div class="section">
-              <h3 class="section-title">Key Insights</h3>
-              <ul class="insights-list">
+              <h3 class="section-title">
+                <span class="section-title-icon" style="color: #3b82f6;">ℹ️</span>
+                Key Insights
+              </h3>
+              <ul>
                 ${insightsHtml}
               </ul>
             </div>
             
             <div class="section">
-              <h3 class="section-title">Recommendations</h3>
-              <ul class="recommendations-list">
+              <h3 class="section-title">
+                <span class="section-title-icon" style="color: #eab308;">💡</span>
+                Recommendations
+              </h3>
+              <ul>
                 ${recommendationsHtml}
               </ul>
             </div>
@@ -248,24 +216,30 @@ const handler = async (req: Request): Promise<Response> => {
     </html>
     `;
 
-    // Send the email using Supabase Edge Function
-    const { error } = await supabaseClient.auth.admin.sendRawEmail({
-      email,
-      subject: `Lead Qualification Summary: ${businessName}`,
-      body: emailHtml,
-    });
-
-    if (error) {
-      throw error;
+    console.log("Attempting to send email via Resend");
+    
+    // Send the email using Resend
+    try {
+      const emailResponse = await resend.emails.send({
+        from: "Lead Qualifier <onboarding@resend.dev>",
+        to: [email],
+        subject: `Lead Qualification Summary: ${businessName}`,
+        html: emailHtml,
+      });
+      
+      console.log("Email sent successfully:", emailResponse);
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "Email sent successfully", data: emailResponse }),
+        {
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 200,
+        }
+      );
+    } catch (emailError) {
+      console.error("Resend email error:", emailError);
+      throw new Error(`Failed to send email: ${emailError.message}`);
     }
-
-    return new Response(
-      JSON.stringify({ success: true, message: "Email sent successfully" }),
-      {
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-        status: 200,
-      }
-    );
   } catch (error) {
     console.error("Error in send-qualification-summary function:", error);
     
@@ -281,5 +255,12 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
+
+// Helper function to get qualification status
+function getQualificationStatus(score: number) {
+  if (score >= 80) return { text: "High", color: "#22c55e" };
+  if (score >= 60) return { text: "Medium", color: "#eab308" };
+  return { text: "Low", color: "#ef4444" };
+}
 
 serve(handler);
