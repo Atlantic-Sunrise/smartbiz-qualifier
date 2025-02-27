@@ -3,10 +3,11 @@ project_id = "stzmklayujbxxswpbqtb"
 [api]
 enabled = true
 [functions]
+[functions.analyze-lead]
+verify_jwt = true
+[functions.answer-question]
+verify_jwt = true
 [functions.send-qualification-summary]
 verify_jwt = true
 [functions.send-all-qualifications-summary]
 verify_jwt = true
-[functions.analyze-lead]
-verify_jwt = true
-

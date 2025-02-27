@@ -21,12 +21,14 @@ serve(async (req) => {
     } = await req.json();
 
     // Use the shared API key from environment variables
-    const apiKey = Deno.env.get("GEMINI_API_KEY") || "";
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
     
     if (!apiKey) {
+      console.error("GEMINI_API_KEY not found in environment variables");
       throw new Error("API key not configured on server");
     }
 
+    console.log("Using shared Gemini API key");
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
