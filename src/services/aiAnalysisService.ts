@@ -18,7 +18,8 @@ export async function analyzeBusinessLead(data: BusinessFormData) {
     .single();
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  // Updated to use the current model name
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const prompt = `As an expert business analyst, analyze this lead in the context of the qualifying business.
 

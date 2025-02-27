@@ -10,6 +10,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Send } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { useToast } from "./ui/use-toast";
 
 interface QualificationResultsProps {
   results: {
@@ -24,6 +25,7 @@ export function QualificationResults({ results }: QualificationResultsProps) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +49,8 @@ export function QualificationResults({ results }: QualificationResultsProps) {
       
       // Initialize the Gemini API
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      // Updated to use the current model name
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
       // Create the prompt that includes both context and user question
       const prompt = `
@@ -72,7 +75,22 @@ export function QualificationResults({ results }: QualificationResultsProps) {
       setAnswer(generatedText);
     } catch (error) {
       console.error("Error generating answer:", error);
-      setAnswer(`Sorry, I couldn't process your question. ${error instanceof Error ? error.message : "Please try again."}`);
+      
+      // Provide a more user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : "Please try again.";
+      const isApiVersionError = errorMessage.includes("models/gemini-pro is not found") || 
+                               errorMessage.includes("not supported for generateContent");
+      
+      if (isApiVersionError) {
+        toast({
+          title: "API Error",
+          description: "The Gemini model is outdated or unavailable. Please update your API key to use the latest version.",
+          variant: "destructive",
+        });
+        setAnswer("Sorry, there's an issue with the Gemini API. The model might be outdated or unavailable. Please update your API key or try again later.");
+      } else {
+        setAnswer(`Sorry, I couldn't process your question. ${errorMessage}`);
+      }
     } finally {
       setIsLoading(false);
     }
