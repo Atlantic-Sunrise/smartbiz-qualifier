@@ -80,9 +80,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return null;
   }
 
-  // Always display the two most recent qualifications
-  const recentQualifications = qualifications.slice(0, 2);
-
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -93,58 +90,31 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
         {isLoading ? (
           <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
         ) : (
-          <div className="border rounded-md flex">
-            {/* Left sidebar with scrollable list of all leads */}
-            <div className="w-52 border-r overflow-y-auto max-h-[250px] bg-gray-50 dark:bg-gray-800">
-              <div className="font-medium px-4 py-2 border-b bg-gray-100 dark:bg-gray-700 sticky top-0">
-                All Leads
-              </div>
-              <ul>
-                {qualifications.map((qualification) => (
-                  <li 
-                    key={qualification.id}
-                    className="px-4 py-2 text-sm border-b last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => handleSelect(qualification)}
-                  >
-                    <div className="font-medium truncate">{qualification.company_name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
-                      <span>{qualification.industry}</span>
-                      <span className={`font-semibold ${
-                        qualification.qualification_score >= 80 ? "text-green-500" : 
-                        qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
-                      }`}>
-                        {qualification.qualification_score}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            {/* Right side with table showing most recent 2 leads */}
-            <div className="flex-1">
+          <div className="border rounded-md">
+            {/* Excel-like table with both horizontal and vertical scrollbars */}
+            <div className="overflow-auto max-h-[300px]" style={{ maxWidth: '100%' }}>
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-white dark:bg-gray-900 z-10">
                   <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Industry</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="min-w-[150px]">Company</TableHead>
+                    <TableHead className="min-w-[120px]">Industry</TableHead>
+                    <TableHead className="min-w-[100px]">Revenue</TableHead>
+                    <TableHead className="min-w-[80px]">Score</TableHead>
+                    <TableHead className="min-w-[120px]">Time</TableHead>
+                    <TableHead className="min-w-[100px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentQualifications.map((qualification) => (
+                  {qualifications.map((qualification) => (
                     <TableRow
                       key={qualification.id}
                       className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                       onClick={() => handleSelect(qualification)}
                     >
-                      <TableCell className="font-medium">{qualification.company_name}</TableCell>
-                      <TableCell>{qualification.industry}</TableCell>
-                      <TableCell>{qualification.annual_revenue}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{qualification.company_name}</TableCell>
+                      <TableCell className="whitespace-nowrap">{qualification.industry}</TableCell>
+                      <TableCell className="whitespace-nowrap">{qualification.annual_revenue}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <span className={`font-semibold ${
                           qualification.qualification_score >= 80 ? "text-green-500" : 
                           qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
@@ -152,10 +122,10 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                           {qualification.qualification_score}/100
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap">
                         <div className="flex justify-end space-x-2">
                           <Button
                             variant="ghost"
