@@ -32,9 +32,9 @@ export function MainContent() {
 
   // Extract a one-word key need from the qualification data
   const extractKeyNeed = (qualification: any): string => {
-    // Return the stored challenge if it exists
-    if (qualification.challenge) {
-      return qualification.challenge;
+    // Return the stored key_need if it exists
+    if (qualification.key_need) {
+      return qualification.key_need;
     }
     
     // Common business need categories
@@ -105,7 +105,7 @@ export function MainContent() {
         industry: qual.industry,
         annualRevenue: qual.annual_revenue,
         createdAt: qual.created_at,
-        keyNeed: qual.challenge || extractKeyNeed(qual) // Use stored value or extract it
+        keyNeed: qual.key_need || extractKeyNeed(qual) // Use stored value or extract it
       }));
       
       // Send the email

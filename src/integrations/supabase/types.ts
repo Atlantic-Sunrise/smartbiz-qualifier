@@ -18,6 +18,7 @@ export type Database = {
           employee_count: string | null
           id: string
           industry: string | null
+          key_need: string | null
           qualification_insights: Json | null
           qualification_recommendations: Json | null
           qualification_score: number | null
@@ -34,6 +35,7 @@ export type Database = {
           employee_count?: string | null
           id?: string
           industry?: string | null
+          key_need?: string | null
           qualification_insights?: Json | null
           qualification_recommendations?: Json | null
           qualification_score?: number | null
@@ -50,6 +52,7 @@ export type Database = {
           employee_count?: string | null
           id?: string
           industry?: string | null
+          key_need?: string | null
           qualification_insights?: Json | null
           qualification_recommendations?: Json | null
           qualification_score?: number | null

@@ -35,7 +35,7 @@ export async function submitBusinessForm(data: BusinessFormData) {
       qualification_summary: analysis.summary,
       qualification_insights: analysis.insights,
       qualification_recommendations: analysis.recommendations,
-      challenge: keyNeed // Store the key need in the challenge field
+      key_need: keyNeed // Store in the new key_need field
     });
 
   if (storageError) {
