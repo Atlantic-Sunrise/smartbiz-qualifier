@@ -106,12 +106,17 @@ export function MainContent() {
                 <BusinessQualificationForm onResults={handleResults} />
               </div>
               
-              {/* Bottom section with Previous Qualifications and Email button */}
+              {/* Bottom section with Previous Qualifications */}
               <div className="flex flex-col items-center space-y-8 mt-12">
                 {/* Previous Qualifications Section */}
                 <div className="w-full max-w-4xl mx-auto">
-                  {/* Email All Summaries Button */}
-                  <div className="flex justify-center w-full mb-6">
+                  <PreviousQualifications onSelectResult={(result, name) => {
+                    setResults(result);
+                    setBusinessName(name);
+                  }} />
+                  
+                  {/* Email All Summaries Button - Moved to bottom of page */}
+                  <div className="flex justify-center w-full mt-8">
                     <Button 
                       onClick={handleSendAllSummaries}
                       disabled={isSendingEmail}
@@ -130,11 +135,6 @@ export function MainContent() {
                       )}
                     </Button>
                   </div>
-                  
-                  <PreviousQualifications onSelectResult={(result, name) => {
-                    setResults(result);
-                    setBusinessName(name);
-                  }} />
                 </div>
               </div>
             </>
