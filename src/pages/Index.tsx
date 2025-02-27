@@ -54,23 +54,17 @@ const Index = () => {
       
       setProfile(data);
       
-      // Check if API keys exist and are valid
+      // Check if Gemini API key exists
       const apiKeys = data?.api_keys || {};
-      const hasValidKeys = apiKeys.gemini_api_key && apiKeys.eleven_labs_key;
-      setShowApiKeyInput(!hasValidKeys);
+      const hasGeminiKey = !!apiKeys.gemini_api_key;
+      setShowApiKeyInput(!hasGeminiKey);
       
-      if (hasValidKeys) {
-        // Set API keys in localStorage for the libraries to use
+      if (hasGeminiKey) {
+        // Set API key in localStorage for the library to use
         localStorage.setItem('gemini_api_key', apiKeys.gemini_api_key);
-        localStorage.setItem('elevenlabs_api_key', apiKeys.eleven_labs_key);
-        localStorage.setItem('eleven_labs_key', apiKeys.eleven_labs_key);
-        
-        console.log('ElevenLabs API key found in profile:', !!apiKeys.eleven_labs_key);
+        console.log('Gemini API key found in profile');
       } else {
-        console.log('Missing API keys:', {
-          gemini: !apiKeys.gemini_api_key,
-          elevenLabs: !apiKeys.eleven_labs_key
-        });
+        console.log('Missing Gemini API key');
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -101,7 +95,6 @@ const Index = () => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const geminiApiKey = formData.get('geminiApiKey') as string;
-    const elevenLabsKey = formData.get('elevenLabsKey') as string;
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -119,34 +112,31 @@ const Index = () => {
         .from('profiles')
         .update({
           api_keys: {
-            gemini_api_key: geminiApiKey,
-            eleven_labs_key: elevenLabsKey
+            gemini_api_key: geminiApiKey
           }
         })
         .eq('id', user.id);
 
       if (error) {
-        console.error('Error saving API keys:', error);
+        console.error('Error saving API key:', error);
         throw error;
       }
 
       // Update localStorage for immediate use
       localStorage.setItem('gemini_api_key', geminiApiKey);
-      localStorage.setItem('eleven_labs_key', elevenLabsKey);
-      localStorage.setItem('elevenlabs_api_key', elevenLabsKey);
       
       setShowApiKeyInput(false);
       toast({
         title: "Success",
-        description: "API keys have been saved securely",
+        description: "API key has been saved securely",
       });
       
       await fetchProfile();
     } catch (error) {
-      console.error('Error saving API keys:', error);
+      console.error('Error saving API key:', error);
       toast({
         title: "Error",
-        description: "Failed to save API keys",
+        description: "Failed to save API key",
         variant: "destructive",
       });
     }
@@ -204,19 +194,8 @@ const Index = () => {
                       className="bg-white/80 dark:bg-gray-800/80"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="elevenLabsKey">ElevenLabs API Key</Label>
-                    <Input
-                      id="elevenLabsKey"
-                      name="elevenLabsKey"
-                      type="password"
-                      placeholder="Enter your ElevenLabs API key"
-                      required
-                      className="bg-white/80 dark:bg-gray-800/80"
-                    />
-                  </div>
                   <Button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white">
-                    Save API Keys
+                    Save API Key
                   </Button>
                 </form>
               </Card>
