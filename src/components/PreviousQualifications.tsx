@@ -4,10 +4,8 @@ import { Card } from "@/components/ui/card";
 import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Trash2, Mail } from "lucide-react";
+import { ArrowRight, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { sendMultipleQualificationsSummary } from "@/services/emailService";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PreviousQualificationsProps {
   onSelectResult: (results: any, businessName: string) => void;
@@ -17,7 +15,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,75 +68,15 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     onSelectResult(results, qualification.company_name);
   };
 
-  const handleSendAllSummaries = async () => {
-    try {
-      setIsSendingEmail(true);
-      
-      // Get current user's email
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user || !user.email) {
-        throw new Error("User email not found. Please ensure you're logged in.");
-      }
-      
-      if (qualifications.length === 0) {
-        throw new Error("No qualifications available to send.");
-      }
-      
-      // Prepare the data for all qualifications
-      const allQualifications = qualifications.map(qual => ({
-        businessName: qual.company_name,
-        score: qual.qualification_score,
-        summary: qual.qualification_summary,
-        insights: qual.qualification_insights,
-        recommendations: qual.qualification_recommendations,
-        industry: qual.industry,
-        createdAt: qual.created_at
-      }));
-      
-      // Send the email
-      await sendMultipleQualificationsSummary({
-        email: user.email,
-        qualifications: allQualifications
-      });
-      
-      toast({
-        title: "Summary Sent",
-        description: `Summary of all lead qualifications has been sent to ${user.email}`,
-      });
-    } catch (error) {
-      console.error("Error sending summaries:", error);
-      toast({
-        title: "Email Failed",
-        description: error instanceof Error ? error.message : "Failed to send summary email. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
-
   // If there are no previous qualifications, don't show this component
   if (!isLoading && qualifications.length === 0) {
     return null;
   }
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 w-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Previous Qualifications</h2>
-        
-        {!isLoading && qualifications.length > 0 && (
-          <Button 
-            onClick={handleSendAllSummaries}
-            disabled={isSendingEmail}
-            variant="outline"
-            className="flex items-center gap-2 border-purple-200 hover:bg-purple-50 hover:text-purple-700 dark:hover:bg-purple-950/30"
-          >
-            <Mail className="h-4 w-4" />
-            {isSendingEmail ? "Sending..." : "Email All Summaries"}
-          </Button>
-        )}
       </div>
       
       {isLoading ? (
