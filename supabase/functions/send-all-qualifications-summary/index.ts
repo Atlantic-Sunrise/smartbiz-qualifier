@@ -17,12 +17,42 @@ interface QualificationData {
   insights: string[];
   recommendations: string[];
   industry: string;
+  annualRevenue?: string;
   createdAt: string;
 }
 
 interface MultipleQualificationsSummaryEmailData {
   email: string;
   qualifications: QualificationData[];
+}
+
+// Function to create an HTML table for the qualifications
+function createQualificationsTable(qualifications: QualificationData[]): string {
+  return `
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <thead>
+        <tr style="background-color: #f5f5f5;">
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Company Name</th>
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Industry</th>
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Revenue</th>
+          <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${qualifications.map((q) => `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 12px;">${q.businessName}</td>
+            <td style="border: 1px solid #ddd; padding: 12px;">${q.industry || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px;">${q.annualRevenue || 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: ${
+              q.score >= 80 ? '#16a34a' : 
+              q.score >= 60 ? '#ca8a04' : '#dc2626'
+            };">${q.score}/100</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -62,13 +92,64 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Attempting to send email via Resend");
     
+    // Create the HTML email content
+    const htmlContent = `
+      <html>
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            h1 {
+              color: #4f46e5;
+              margin-bottom: 20px;
+            }
+            h2 {
+              color: #4b5563;
+              margin-top: 30px;
+              margin-bottom: 15px;
+            }
+            .summary {
+              margin-bottom: 30px;
+            }
+            .footer {
+              margin-top: 40px;
+              font-size: 14px;
+              color: #6b7280;
+              border-top: 1px solid #e5e7eb;
+              padding-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Lead Qualification Summary Report</h1>
+          
+          <div class="summary">
+            <p>You have ${qualifications.length} qualified lead${qualifications.length !== 1 ? 's' : ''}.</p>
+          </div>
+          
+          <h2>All Leads Overview</h2>
+          ${createQualificationsTable(qualifications)}
+          
+          <div class="footer">
+            <p>This report was generated automatically by the Lead Qualification Tool.</p>
+          </div>
+        </body>
+      </html>
+    `;
+    
     // Send the email using Resend
     try {
       const emailResponse = await resend.emails.send({
         from: "Lead Qualifier <onboarding@resend.dev>",
         to: [email],
-        subject: "Lead Qualification Summary Report - All Leads",
-        html: `<h1>Your Lead Qualification Summary</h1><p>You have ${qualifications.length} qualified leads.</p>`,
+        subject: "Lead Qualification Summary Report",
+        html: htmlContent,
       });
       
       console.log("Email sent successfully:", emailResponse);

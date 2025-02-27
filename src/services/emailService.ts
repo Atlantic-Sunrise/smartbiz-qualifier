@@ -17,6 +17,7 @@ export interface QualificationData {
   insights: string[];
   recommendations: string[];
   industry: string;
+  annualRevenue?: string;
   createdAt: string;
 }
 

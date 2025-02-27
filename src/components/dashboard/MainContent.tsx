@@ -61,6 +61,7 @@ export function MainContent() {
         insights: qual.qualification_insights,
         recommendations: qual.qualification_recommendations,
         industry: qual.industry,
+        annualRevenue: qual.annual_revenue,
         createdAt: qual.created_at
       }));
       
