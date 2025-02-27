@@ -97,29 +97,33 @@ export function MainContent() {
       {showApiKeyInput ? (
         <ApiKeyForm onApiKeySaved={handleApiKeySaved} />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8 w-full">
           {!results && (
             <>
-              <div className="space-y-4">
+              {/* Previous Qualifications Section */}
+              <div className="w-full">
                 <PreviousQualifications onSelectResult={(result, name) => {
                   setResults(result);
                   setBusinessName(name);
                 }} />
-                
-                {/* Email All Summaries Button */}
-                <div className="flex justify-center">
-                  <Button 
-                    onClick={handleSendAllSummaries}
-                    disabled={isSendingEmail}
-                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
-                  >
-                    <Mail className="h-4 w-4" />
-                    {isSendingEmail ? "Sending..." : "Email All Summaries"}
-                  </Button>
-                </div>
               </div>
               
-              <BusinessQualificationForm onResults={handleResults} />
+              {/* Email All Summaries Button */}
+              <div className="flex justify-center w-full">
+                <Button 
+                  onClick={handleSendAllSummaries}
+                  disabled={isSendingEmail}
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <Mail className="h-4 w-4" />
+                  {isSendingEmail ? "Sending..." : "Email All Summaries"}
+                </Button>
+              </div>
+              
+              {/* Business Qualification Form */}
+              <div className="w-full">
+                <BusinessQualificationForm onResults={handleResults} />
+              </div>
             </>
           )}
           {results && <QualificationResults results={results} businessName={businessName} />}
