@@ -1,11 +1,18 @@
 
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface PreviousQualificationsProps {
   onSelectResult: (results: any, businessName: string) => void;
@@ -34,7 +41,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering the card click
+    e.stopPropagation(); // Prevent triggering the row click
     
     try {
       setIsDeleting(id);
@@ -73,61 +80,57 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return null;
   }
 
+  // Get only the most recent qualification
+  const mostRecentQualification = qualifications.length > 0 ? qualifications[0] : null;
+
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className="w-full">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-center">Lead Qualifications</h2>
       </div>
       
-      <div className="w-full max-w-6xl">
+      <div className="w-full">
         {isLoading ? (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-4 h-28 animate-pulse">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
-                <div className="flex justify-between">
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {qualifications.map((qualification) => (
-              <Card 
-                key={qualification.id}
-                className="p-4 cursor-pointer hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-                onClick={() => handleSelect(qualification)}
+          <div className="h-20 animate-pulse bg-gray-200 dark:bg-gray-700 rounded"></div>
+        ) : mostRecentQualification ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Company</TableHead>
+                <TableHead>Industry</TableHead>
+                <TableHead>Revenue</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow
+                key={mostRecentQualification.id}
+                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => handleSelect(mostRecentQualification)}
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-lg">{qualification.company_name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{qualification.industry}</p>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className={`text-lg font-semibold ${
-                      qualification.qualification_score >= 80 ? "text-green-500" : 
-                      qualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
-                    }`}>
-                      {qualification.qualification_score}
-                    </span>
-                    <span className="text-gray-400">/100</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between mt-4 items-center">
-                  <span className="text-xs text-gray-500">
-                    {formatDistanceToNow(new Date(qualification.created_at), { addSuffix: true })}
+                <TableCell className="font-medium">{mostRecentQualification.company_name}</TableCell>
+                <TableCell>{mostRecentQualification.industry}</TableCell>
+                <TableCell>{mostRecentQualification.annual_revenue}</TableCell>
+                <TableCell>
+                  <span className={`font-semibold ${
+                    mostRecentQualification.qualification_score >= 80 ? "text-green-500" : 
+                    mostRecentQualification.qualification_score >= 60 ? "text-yellow-500" : "text-red-500"
+                  }`}>
+                    {mostRecentQualification.qualification_score}/100
                   </span>
-                  
-                  <div className="flex space-x-2">
+                </TableCell>
+                <TableCell>
+                  {formatDistanceToNow(new Date(mostRecentQualification.created_at), { addSuffix: true })}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={isDeleting === qualification.id}
-                      onClick={(e) => handleDelete(qualification.id, e)}
+                      disabled={isDeleting === mostRecentQualification.id}
+                      onClick={(e) => handleDelete(mostRecentQualification.id, e)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 p-1 h-auto"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -141,11 +144,11 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        ) : null}
       </div>
     </div>
   );
