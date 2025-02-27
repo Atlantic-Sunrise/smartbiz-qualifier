@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Eye, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Eye, ChevronDown, ChevronUp, Trash2, AlertCircle, XCircle, CheckCircle } from "lucide-react";
 
 export function PreviousQualifications({ onSelectResult }: { onSelectResult: (result: any) => void }) {
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const { toast } = useToast();
 
@@ -36,9 +37,18 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteRequest = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDeleteId(null);
+  };
+
+  const handleConfirmDelete = async (id: string) => {
     try {
       setDeletingId(id);
+      setConfirmDeleteId(null);
       await deleteQualification(id);
       
       // Remove the deleted qualification from the state
@@ -125,15 +135,39 @@ export function PreviousQualifications({ onSelectResult }: { onSelectResult: (re
               >
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                disabled={deletingId === qual.id}
-                onClick={() => handleDelete(qual.id)}
-                className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              
+              {confirmDeleteId === qual.id ? (
+                <div className="flex items-center gap-1 bg-red-50 dark:bg-red-900/20 p-1 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-green-500 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    onClick={() => handleConfirmDelete(qual.id)}
+                    disabled={deletingId === qual.id}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    onClick={handleCancelDelete}
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  disabled={deletingId === qual.id || confirmDeleteId !== null}
+                  onClick={() => handleDeleteRequest(qual.id)}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
