@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
+import BusinessProfile from "@/pages/BusinessProfile";
 import "./App.css";
 
 function App() {
@@ -41,6 +42,16 @@ function App() {
           element={
             session ? (
               <Index />
+            ) : (
+              <Navigate to="/auth" replace />
+            )
+          }
+        />
+        <Route
+          path="/business-profile"
+          element={
+            session ? (
+              <BusinessProfile />
             ) : (
               <Navigate to="/auth" replace />
             )
