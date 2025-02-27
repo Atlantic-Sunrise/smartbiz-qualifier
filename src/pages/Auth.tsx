@@ -1,6 +1,6 @@
 
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,71 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/');
+      }
+    };
+
+    checkUser();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          // First ensure the user has a profile
+          ensureUserProfile(session.user.id).then(() => {
+            navigate('/');
+          });
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  // Ensure user has a profile record
+  const ensureUserProfile = async (userId: string) => {
+    try {
+      // Check if profile exists
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      // If no profile exists, create one
+      if (error && error.code === 'PGRST116') {
+        console.log('Creating new profile for user', userId);
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ id: userId }]);
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          throw insertError;
+        }
+      } else if (error) {
+        console.error('Error checking profile:', error);
+        throw error;
+      } else {
+        console.log('User profile exists:', data);
+      }
+    } catch (error) {
+      console.error('Error in ensureUserProfile:', error);
+      toast({
+        variant: "destructive",
+        title: "Profile Error",
+        description: "There was an error setting up your profile. Please try again.",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,7 +101,7 @@ export default function Auth() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "An unknown error occurred",
       });
     } finally {
       setLoading(false);

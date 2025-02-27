@@ -23,20 +23,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async () => {
     try {
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // Get current user session
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (userError) {
-        console.error('Error getting user:', userError);
-        throw userError;
-      }
-      
-      if (!user) {
-        console.log("No authenticated user found");
+      if (!session || !session.user) {
+        console.log("No authenticated session found");
         setLoading(false);
+        if (window.location.pathname !== '/auth') {
+          navigate("/auth");
+        }
         return;
       }
 
+      const user = session.user;
       console.log("Fetching profile for user:", user.id);
       
       // Fetch profile data for this user
@@ -49,7 +48,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       if (error) {
         // If the error is that no rows were returned, it might mean the profile doesn't exist yet
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, might need to be created');
+          console.log('Profile not found, creating a new one');
           
           // Try to create a profile
           const { error: insertError } = await supabase
@@ -73,6 +72,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             throw newProfileError;
           }
           
+          console.log("New profile created:", newProfile);
           setProfile(newProfile);
         } else {
           console.error('Error fetching profile:', error);
@@ -98,12 +98,30 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Only fetch profile if we're not on the auth page
     if (window.location.pathname !== '/auth') {
       fetchProfile();
     } else {
       setLoading(false);
     }
+
+    // Listen for auth state changes to refresh profile
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth state changed:", event);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          fetchProfile();
+        } else if (event === 'SIGNED_OUT') {
+          setProfile(null);
+          if (window.location.pathname !== '/auth') {
+            navigate("/auth");
+          }
+        }
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
