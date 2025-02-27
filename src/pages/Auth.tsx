@@ -11,7 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -20,20 +21,34 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      });
-      
-      if (error) throw error;
-      
-      setMagicLinkSent(true);
-      toast({
-        title: "Magic link sent!",
-        description: "Check your email for a login link.",
-      });
+      if (isSignUp) {
+        // Sign up flow
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Sign up successful!",
+          description: "Please check your email to confirm your account.",
+        });
+      } else {
+        // Sign in flow
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (error) throw error;
+        
+        // Successful login, redirect to main page
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -50,47 +65,62 @@ export default function Auth() {
       <Card className="w-full max-w-md p-6 space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold">
-            {magicLinkSent ? "Check Your Email" : "Welcome to Lead Qualifier"}
+            {isSignUp ? "Create Your Account" : "Welcome Back"}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            {magicLinkSent
-              ? "We've sent you a magic link to your email"
-              : "Sign in with your email to get started"}
+            {isSignUp
+              ? "Sign up to start qualifying leads"
+              : "Sign in to your account"}
           </p>
         </div>
 
-        {!magicLinkSent ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending..." : "Send Magic Link"}
-            </Button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-center text-sm text-gray-500">
-              We've sent a magic link to <strong>{email}</strong>. 
-              Check your email and click the link to log in.
-            </p>
-            <Button 
-              className="w-full" 
-              variant="outline" 
-              onClick={() => setMagicLinkSent(false)}
-            >
-              Back to Login
-            </Button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
           </div>
-        )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading 
+              ? "Processing..." 
+              : isSignUp 
+                ? "Sign Up" 
+                : "Sign In"
+            }
+          </Button>
+        </form>
+        
+        <div className="text-center pt-2">
+          <Button 
+            variant="link" 
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            onClick={() => setIsSignUp(!isSignUp)}
+          >
+            {isSignUp 
+              ? "Already have an account? Sign In" 
+              : "Don't have an account? Sign Up"
+            }
+          </Button>
+        </div>
       </Card>
     </div>
   );
