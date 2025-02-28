@@ -38,39 +38,34 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const user = session.user;
       console.log("Fetching profile for user:", user.id);
       
-      // First, try a simple select
-      let { data, error } = await supabase
+      // Try to get profile with a simple query
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
-      // If there's no data or there's an error, we'll try to create the profile
-      if (!data || error) {
-        console.log('Profile not found or error occurred, attempting to create/update');
+      if (error) {
+        console.log("Error or no profile found, attempting to create one");
         
-        // Use upsert which will either insert a new record or update an existing one
-        const { data: upsertData, error: upsertError } = await supabase
+        // Create a profile with upsert
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .upsert({ 
-            id: user.id,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-          
-        if (upsertError) {
-          console.error('Error upserting profile:', upsertError);
-          throw upsertError;
+          .upsert({ id: user.id })
+          .select();
+        
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+          throw profileError;
         }
         
-        data = upsertData;
-        console.log("Profile upserted successfully:", data);
+        setProfile(profileData[0]);
+        console.log("New profile created:", profileData[0]);
       } else {
+        setProfile(data);
         console.log("Existing profile found:", data);
       }
       
-      setProfile(data);
       setShowApiKeyInput(false);
     } catch (error) {
       console.error('Error in fetchProfile:', error);

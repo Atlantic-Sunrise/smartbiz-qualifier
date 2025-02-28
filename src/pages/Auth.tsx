@@ -13,7 +13,6 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [rateLimitError, setRateLimitError] = useState(false);
-  const [isNewUser, setIsNewUser] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -30,19 +29,10 @@ export default function Auth() {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
         if (event === "SIGNED_IN" && session) {
-          try {
-            // First ensure the user has a profile
-            await ensureUserProfile(session.user.id);
-            // Then navigate to home
-            navigate('/');
-          } catch (error) {
-            console.error("Error during authentication:", error);
-            // If there was an error, we should still navigate to avoid being stuck
-            navigate('/');
-          }
+          navigate('/');
         }
       }
     );
@@ -52,76 +42,12 @@ export default function Auth() {
     };
   }, [navigate]);
 
-  // Ensure user has a profile record - robust implementation for all cases
-  const ensureUserProfile = async (userId: string) => {
-    try {
-      console.log("Ensuring profile for user:", userId);
-      
-      // First check if profile exists
-      const { data, error: selectError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', userId);
-      
-      // Handle no profile case
-      if (selectError || (data && data.length === 0)) {
-        console.log('Profile not found or error, creating new profile for user', userId);
-        
-        // Attempt to create a new profile
-        const { error: upsertError } = await supabase
-          .from('profiles')
-          .upsert([{ 
-            id: userId,
-            updated_at: new Date().toISOString()
-          }], { 
-            onConflict: 'id' 
-          });
-          
-        if (upsertError) {
-          console.error('Error creating/updating profile:', upsertError);
-          
-          // Try an insert as a fallback if upsert failed
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert([{ id: userId }]);
-            
-          if (insertError) {
-            console.error('Error inserting profile:', insertError);
-            toast({
-              variant: "destructive",
-              title: "Profile Error",
-              description: "There was an error setting up your profile. Please try again or contact support.",
-            });
-          } else {
-            console.log("Profile created successfully via insert");
-          }
-        } else {
-          console.log("Profile created/updated successfully via upsert");
-        }
-      } else {
-        console.log('User profile already exists:', data);
-      }
-    } catch (error) {
-      console.error('Error in ensureUserProfile:', error);
-      toast({
-        variant: "destructive",
-        title: "Profile Error",
-        description: "There was an error setting up your profile. Please try again.",
-      });
-      throw error; // Rethrow to handle it in the calling function
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setRateLimitError(false);
 
     try {
-      // We don't have a reliable way to check if user is new with client-side API
-      // Just assume they're new for error messaging
-      setIsNewUser(true);
-
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
