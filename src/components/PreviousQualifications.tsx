@@ -3,10 +3,9 @@ import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, Mail, FileText } from "lucide-react";
+import { Trash2, Eye, FileDown } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
-import { sendMultipleQualificationsSummary } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -26,8 +25,7 @@ interface PreviousQualificationsProps {
 export function PreviousQualifications({ onSelectResult }: PreviousQualificationsProps) {
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
-  const [isSendingDetailed, setIsSendingDetailed] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [qualificationToDelete, setQualificationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -129,62 +127,63 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     return bestCategory.charAt(0).toUpperCase() + bestCategory.slice(1);
   };
 
-  const handleSendAllSummaries = async (includeDetails: boolean) => {
+  const handleDownloadCSV = () => {
+    setIsExporting(true);
     try {
-      if (includeDetails) {
-        setIsSendingDetailed(true);
-      } else {
-        setIsSendingEmail(true);
-      }
+      // Get column headers
+      const headers = [
+        "Company Name",
+        "Industry",
+        "Key Need",
+        "Score",
+        "Employee Count",
+        "Annual Revenue",
+        "Date Added"
+      ];
       
-      // Get current user's email
-      const { data: { user } } = await supabase.auth.getUser();
+      // Format the data
+      const rows = qualifications.map(qual => [
+        qual.company_name || "",
+        qual.industry || "",
+        qual.key_need || extractKeyNeed(qual),
+        qual.qualification_score?.toString() || "0",
+        qual.employee_count || "",
+        qual.annual_revenue || "",
+        new Date(qual.created_at).toLocaleDateString()
+      ]);
       
-      if (!user || !user.email) {
-        throw new Error("User email not found. Please ensure you're logged in.");
-      }
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => 
+          // Escape cells that might contain commas
+          row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(",")
+        )
+      ].join("\n");
       
-      if (!qualifications || qualifications.length === 0) {
-        throw new Error("No qualifications available to send.");
-      }
-      
-      // Prepare the data for all qualifications
-      const allQualifications = qualifications.map(qual => ({
-        businessName: qual.company_name,
-        score: qual.qualification_score,
-        summary: qual.qualification_summary,
-        insights: qual.qualification_insights,
-        recommendations: qual.qualification_recommendations,
-        industry: qual.industry,
-        annualRevenue: qual.annual_revenue,
-        createdAt: qual.created_at,
-        keyNeed: qual.key_need || extractKeyNeed(qual)
-      }));
-      
-      // Send the email
-      await sendMultipleQualificationsSummary({
-        email: user.email,
-        qualifications: allQualifications,
-        includeDetails
-      });
+      // Create and download the file
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "lead-qualifications-summary.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       toast({
-        title: "Summary Sent",
-        description: `${includeDetails ? 'Detailed reports' : 'Summary'} has been sent to ${user.email}`,
+        title: "CSV Downloaded",
+        description: "Lead qualifications summary has been downloaded as CSV",
       });
     } catch (error) {
-      console.error("Error sending summaries:", error);
+      console.error("Error downloading CSV:", error);
       toast({
-        title: "Email Failed",
-        description: error instanceof Error ? error.message : "Failed to send summary email. Please try again.",
         variant: "destructive",
+        title: "Download Failed",
+        description: "Failed to generate CSV file. Please try again.",
       });
     } finally {
-      if (includeDetails) {
-        setIsSendingDetailed(false);
-      } else {
-        setIsSendingEmail(false);
-      }
+      setIsExporting(false);
     }
   };
 
@@ -239,37 +238,19 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
 
               <div className="flex flex-col items-center w-full mt-8 space-y-4">
                 <Button 
-                  onClick={() => handleSendAllSummaries(false)}
-                  disabled={isSendingEmail}
+                  onClick={handleDownloadCSV}
+                  disabled={isExporting}
                   className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
                 >
-                  {isSendingEmail ? (
+                  {isExporting ? (
                     <>
-                      <Mail className="h-4 w-4 animate-pulse" />
-                      Sending...
+                      <FileDown className="h-4 w-4 animate-pulse" />
+                      Downloading...
                     </>
                   ) : (
                     <>
-                      <Mail className="h-4 w-4" />
-                      Email Summary Table
-                    </>
-                  )}
-                </Button>
-
-                <Button 
-                  onClick={() => handleSendAllSummaries(true)}
-                  disabled={isSendingDetailed}
-                  className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  {isSendingDetailed ? (
-                    <>
-                      <FileText className="h-4 w-4 animate-pulse" />
-                      Sending Detailed Reports...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4" />
-                      Send Detailed Reports
+                      <FileDown className="h-4 w-4" />
+                      Download Summary CSV
                     </>
                   )}
                 </Button>
