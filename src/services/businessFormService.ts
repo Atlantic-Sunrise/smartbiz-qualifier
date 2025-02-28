@@ -4,26 +4,28 @@ import { BusinessFormData } from "@/constants/businessFormConstants";
 import { analyzeBusinessLead } from "./aiAnalysisService";
 
 export async function submitBusinessForm(data: BusinessFormData) {
-  const user = (await supabase.auth.getUser()).data.user;
+  // Get current authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (userError || !user) {
+    console.error('User authentication error:', userError);
     throw new Error("User not authenticated");
   }
   
-  const analysis = await analyzeBusinessLead(data);
-  
-  // Extract the key need from the data
-  const keyNeed = extractKeyNeed({
-    qualification_summary: analysis.summary,
-    qualification_insights: analysis.insights,
-    qualification_recommendations: analysis.recommendations,
-    challenges: data.challenges
-  });
-  
-  // Insert the business data and qualification results
-  const { error: storageError } = await supabase
-    .from('business_qualifications')
-    .insert({
+  try {
+    // Call API to analyze business lead
+    const analysis = await analyzeBusinessLead(data);
+    
+    // Extract the key need from the data
+    const keyNeed = extractKeyNeed({
+      qualification_summary: analysis.summary,
+      qualification_insights: analysis.insights,
+      qualification_recommendations: analysis.recommendations,
+      challenges: data.challenges
+    });
+    
+    console.log('Saving qualification data for user:', user.id);
+    console.log('Qualification data:', {
       user_id: user.id,
       company_name: data.companyName,
       industry: data.industry,
@@ -35,18 +37,43 @@ export async function submitBusinessForm(data: BusinessFormData) {
       qualification_summary: analysis.summary,
       qualification_insights: analysis.insights,
       qualification_recommendations: analysis.recommendations,
-      key_need: keyNeed // Store in the new key_need field
+      key_need: keyNeed
     });
+    
+    // Insert the business data and qualification results
+    const { data: savedData, error: storageError } = await supabase
+      .from('business_qualifications')
+      .insert({
+        user_id: user.id,
+        company_name: data.companyName,
+        industry: data.industry,
+        employee_count: data.employeeCount,
+        annual_revenue: data.annualRevenue,
+        website: data.website,
+        challenges: data.challenges,
+        qualification_score: analysis.score,
+        qualification_summary: analysis.summary,
+        qualification_insights: analysis.insights,
+        qualification_recommendations: analysis.recommendations,
+        key_need: keyNeed
+      })
+      .select()
+      .single();
 
-  if (storageError) {
-    console.error('Error saving form data:', storageError);
-    throw new Error('Failed to save form data');
+    if (storageError) {
+      console.error('Error saving form data:', storageError);
+      throw new Error('Failed to save form data: ' + storageError.message);
+    }
+
+    console.log('Successfully saved qualification data:', savedData);
+    return analysis;
+  } catch (error) {
+    console.error('Error in submitBusinessForm:', error);
+    throw error;
   }
-
-  return analysis;
 }
 
-// Add a function to extract the key need from qualification data
+// Function to extract the key need from qualification data
 function extractKeyNeed(qualification: any): string {
   // Common business need categories
   const needKeywords: Record<string, string[]> = {
@@ -84,11 +111,12 @@ function extractKeyNeed(qualification: any): string {
   return bestCategory.charAt(0).toUpperCase() + bestCategory.slice(1);
 }
 
-// Add a function to fetch previous qualifications
+// Function to fetch previous qualifications
 export async function fetchQualifications() {
-  const user = (await supabase.auth.getUser()).data.user;
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (userError || !user) {
+    console.error('User authentication error:', userError);
     throw new Error("User not authenticated");
   }
   
@@ -106,11 +134,12 @@ export async function fetchQualifications() {
   return data;
 }
 
-// Add a function to delete a qualification
+// Function to delete a qualification
 export async function deleteQualification(id: string) {
-  const user = (await supabase.auth.getUser()).data.user;
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   
-  if (!user) {
+  if (userError || !user) {
+    console.error('User authentication error:', userError);
     throw new Error("User not authenticated");
   }
   

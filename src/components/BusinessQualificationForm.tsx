@@ -32,18 +32,20 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   const onSubmit = async (data: BusinessFormData) => {
     setIsLoading(true);
     try {
+      console.log('Submitting business form with data:', data);
       const analysis = await submitBusinessForm(data);
+      console.log('Analysis result:', analysis);
       onResults(analysis, data.companyName);
       
       toast({
         title: "Success",
         description: "Form data has been saved successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error processing form:', error);
       toast({
         title: "Error",
-        description: "Failed to process form. Please check your API key and try again.",
+        description: error.message || "Failed to process form. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -52,8 +54,8 @@ export function BusinessQualificationForm({ onResults }: { onResults: (data: any
   };
 
   return (
-    <div className="min-h-screen w-full p-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      <Card className="w-full max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg animate-fadeIn">
+    <div className="w-full">
+      <Card className="w-full p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <FormFields
             register={register}
