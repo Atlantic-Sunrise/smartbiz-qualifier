@@ -11,8 +11,6 @@ import { Label } from "./ui/label";
 import { Send } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { AlertCircle } from "lucide-react";
 
 interface QualificationResultsProps {
   results: {
@@ -120,16 +118,7 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         <div className="flex flex-col space-y-4">
           <ScoreDisplay score={results.score} summary={results.summary} />
           
-          <Alert className="mb-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <AlertTitle className="text-blue-800 dark:text-blue-300">Testing Mode</AlertTitle>
-            <AlertDescription className="text-blue-700 dark:text-blue-300">
-              In development mode, all emails are sent to the registered Resend account (myatlanticsunrise@gmail.com) 
-              instead of your actual email address.
-            </AlertDescription>
-          </Alert>
-          
-          {/* Email button removed - will be added later */}
+          {/* Email functionality will be added later */}
         </div>
       </Card>
 
