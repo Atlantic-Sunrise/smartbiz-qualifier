@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,15 +14,25 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [rateLimitError, setRateLimitError] = useState(false);
   const [resetPasswordEmail, setResetPasswordEmail] = useState("");
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if user is already logged in
   useEffect(() => {
     const checkUser = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const isRecoveryFlow = params.has('type') && params.get('type') === 'recovery';
+      
+      if (isRecoveryFlow) {
+        setShowPasswordReset(true);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         navigate('/');
@@ -32,11 +41,16 @@ export default function Auth() {
 
     checkUser();
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("Auth state changed:", event, session?.user?.id);
-        if (event === "SIGNED_IN" && session) {
+
+        if (event === "PASSWORD_RECOVERY") {
+          setShowPasswordReset(true);
+          return;
+        }
+
+        if (event === "SIGNED_IN" && session && !showPasswordReset) {
           navigate('/');
         }
       }
@@ -45,7 +59,7 @@ export default function Auth() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, showPasswordReset]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,7 +73,6 @@ export default function Auth() {
       });
       
       if (error) {
-        // Check specifically for rate limit errors
         if (error.message.toLowerCase().includes('rate limit') || 
             error.message.includes('429')) {
           setRateLimitError(true);
@@ -69,7 +82,6 @@ export default function Auth() {
         throw error;
       }
       
-      // No need for toast on successful login as the user will be redirected
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -96,7 +108,6 @@ export default function Auth() {
       });
       
       if (error) {
-        // Check specifically for rate limit errors
         if (error.message.toLowerCase().includes('rate limit') || 
             error.message.includes('429')) {
           setRateLimitError(true);
@@ -127,7 +138,7 @@ export default function Auth() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
       });
 
       if (error) {
@@ -150,6 +161,97 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords don't match",
+        description: "Please make sure both passwords match.",
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Password updated successfully",
+        description: "You can now sign in with your new password",
+      });
+      
+      setTimeout(() => {
+        setShowPasswordReset(false);
+        window.history.replaceState({}, document.title, "/auth");
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error updating password",
+        description: error.message || "An unknown error occurred",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showPasswordReset) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6 space-y-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Reset Your Password</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Enter a new password for your account
+            </p>
+          </div>
+
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                placeholder="••••••••"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+              />
+              <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
+            </div>
+            
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Updating Password..." : "Update Password"}
+            </Button>
+          </form>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
