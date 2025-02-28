@@ -18,8 +18,8 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [rateLimitError, setRateLimitError] = useState(false);
-  const [resetPasswordEmail, setResetPasswordEmail] = useState("");
-  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordDialogOpen, setForgotPasswordDialogOpen] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -138,22 +138,23 @@ export default function Auth() {
     }
   };
 
-  const handleSendMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+    setRateLimitError(false);
 
     try {
-      console.log("Sending magic link to:", resetPasswordEmail);
-      // Use signInWithOtp instead of resetPasswordForEmail
-      const { error } = await supabase.auth.signInWithOtp({
-        email: resetPasswordEmail.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
+      console.log("Sending password reset email to:", forgotPasswordEmail);
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        forgotPasswordEmail.trim(),
+        {
+          redirectTo: `${window.location.origin}/auth?type=recovery`,
         }
-      });
+      );
 
       if (error) {
-        console.error("Magic link error:", error);
+        console.error("Password reset email error:", error);
         if (error.message.toLowerCase().includes('rate limit') || 
             error.message.includes('429')) {
           setRateLimitError(true);
@@ -163,15 +164,15 @@ export default function Auth() {
       }
 
       toast({
-        title: "Magic link sent",
-        description: "Check your email for a link to sign in instantly",
+        title: "Password reset email sent",
+        description: "Check your email for a link to reset your password",
       });
       
-      setResetPasswordDialogOpen(false);
+      setForgotPasswordDialogOpen(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error sending magic link",
+        title: "Error sending password reset email",
         description: error.message || "An unknown error occurred",
       });
     } finally {
@@ -337,36 +338,36 @@ export default function Auth() {
               </Button>
 
               <div className="text-center mt-2">
-                <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+                <Dialog open={forgotPasswordDialogOpen} onOpenChange={setForgotPasswordDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="link" className="text-sm">
-                      Login with magic link
+                      Forgot password?
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Login with Magic Link</DialogTitle>
+                      <DialogTitle>Reset Your Password</DialogTitle>
                       <DialogDescription>
-                        Enter your email to receive a magic link for instant login
+                        Enter your email to receive a password reset link
                       </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSendMagicLink} className="space-y-4 pt-2">
+                    <form onSubmit={handleForgotPassword} className="space-y-4 pt-2">
                       <div className="space-y-2">
-                        <Label htmlFor="reset-email">Email</Label>
+                        <Label htmlFor="forgot-password-email">Email</Label>
                         <Input
-                          id="reset-email"
+                          id="forgot-password-email"
                           type="email"
                           placeholder="you@company.com"
-                          value={resetPasswordEmail}
-                          onChange={(e) => setResetPasswordEmail(e.target.value)}
+                          value={forgotPasswordEmail}
+                          onChange={(e) => setForgotPasswordEmail(e.target.value)}
                           required
                         />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Enter your email address and we'll send you a magic link to log in instantly.
+                        Enter your email address and we'll send you a link to reset your password.
                       </p>
                       <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? "Sending..." : "Send Magic Link"}
+                        {loading ? "Sending..." : "Send Reset Link"}
                       </Button>
                     </form>
                   </DialogContent>
