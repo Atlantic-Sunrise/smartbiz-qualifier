@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,13 +133,13 @@ export default function Auth() {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth?type=recovery`,
+        redirectTo: `${window.location.origin}/auth`,
       });
 
       if (error) {
@@ -146,15 +147,15 @@ export default function Auth() {
       }
 
       toast({
-        title: "Password reset email sent",
-        description: "Check your email for a link to reset your password",
+        title: "Login link sent",
+        description: "Check your email for a magic link to log in",
       });
       
       setResetPasswordDialogOpen(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error sending reset email",
+        title: "Error sending login link",
         description: error.message || "An unknown error occurred",
       });
     } finally {
@@ -320,14 +321,14 @@ export default function Auth() {
                 <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="link" className="text-sm">
-                      Forgot your password?
+                      Login with magic link
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Reset Password</DialogTitle>
+                      <DialogTitle>Login with Magic Link</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleResetPassword} className="space-y-4 pt-2">
+                    <form onSubmit={handleSendMagicLink} className="space-y-4 pt-2">
                       <div className="space-y-2">
                         <Label htmlFor="reset-email">Email</Label>
                         <Input
@@ -340,10 +341,10 @@ export default function Auth() {
                         />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Enter your email address and we'll send you a link to reset your password.
+                        Enter your email address and we'll send you a magic link to log in instantly.
                       </p>
                       <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? "Sending..." : "Send Reset Link"}
+                        {loading ? "Sending..." : "Send Magic Link"}
                       </Button>
                     </form>
                   </DialogContent>
