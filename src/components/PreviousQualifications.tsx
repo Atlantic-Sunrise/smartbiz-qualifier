@@ -189,7 +189,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                     <TableHead>Industry</TableHead>
                     <TableHead>Key Need</TableHead>
                     <TableHead>Score</TableHead>
-                    <TableHead>Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -200,7 +199,6 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                       <TableCell>{qual.industry}</TableCell>
                       <TableCell>{qual.key_need || extractKeyNeed(qual)}</TableCell>
                       <TableCell>{qual.qualification_score}/100</TableCell>
-                      <TableCell>{formatDistanceToNow(new Date(qual.created_at), { addSuffix: true })}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" size="icon" onClick={() => handleView(qual)}>
