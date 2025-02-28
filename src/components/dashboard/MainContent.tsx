@@ -6,6 +6,7 @@ import { BusinessProfileSetup } from "@/components/BusinessProfileSetup";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { useProfile } from "@/context/ProfileContext";
 import { supabase } from "@/integrations/supabase/client";
+import { PreviousQualifications } from "@/components/PreviousQualifications";
 
 export function MainContent() {
   const [results, setResults] = useState<any>(null);
@@ -31,7 +32,10 @@ export function MainContent() {
 
       <div className="space-y-8 w-full">
         {!results ? (
-          <QualificationFormSection onResultsReceived={handleResults} />
+          <>
+            <QualificationFormSection onResultsReceived={handleResults} />
+            <PreviousQualifications />
+          </>
         ) : (
           <ResultsDisplay 
             results={results} 
