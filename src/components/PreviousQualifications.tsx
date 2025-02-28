@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, FileDown } from "lucide-react";
+import { Trash2, Eye, FileDown, RefreshCw } from "lucide-react";
 import { useToast } from "./ui/use-toast";
-import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
+import { fetchQualifications, deleteQualification, updateQualification } from "@/services/businessFormService";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -17,6 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EMPLOYEE_RANGES, REVENUE_RANGES, TOP_INDUSTRIES } from "@/constants/businessFormConstants";
 
 interface PreviousQualificationsProps {
   onSelectResult: (results: any, companyName: string) => void;
@@ -26,8 +31,19 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   const [qualifications, setQualifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [qualificationToDelete, setQualificationToDelete] = useState<string | null>(null);
+  const [qualificationToUpdate, setQualificationToUpdate] = useState<any | null>(null);
+  const [updateFormData, setUpdateFormData] = useState({
+    companyName: "",
+    industry: "",
+    employeeCount: "",
+    annualRevenue: "",
+    website: "",
+    challenges: ""
+  });
   const { toast } = useToast();
 
   const loadQualifications = async () => {
@@ -87,6 +103,43 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
       recommendations: qualification.qualification_recommendations,
     };
     onSelectResult(results, qualification.company_name);
+  };
+
+  const handleUpdateClick = (qualification: any) => {
+    setQualificationToUpdate(qualification);
+    setUpdateFormData({
+      companyName: qualification.company_name || "",
+      industry: qualification.industry || "",
+      employeeCount: qualification.employee_count || "",
+      annualRevenue: qualification.annual_revenue || "",
+      website: qualification.website || "",
+      challenges: qualification.challenges || ""
+    });
+    setUpdateDialogOpen(true);
+  };
+
+  const handleUpdateSubmit = async () => {
+    if (!qualificationToUpdate) return;
+
+    setIsUpdating(true);
+    try {
+      await updateQualification(qualificationToUpdate.id, updateFormData);
+      toast({
+        title: "Qualification Updated",
+        description: "The lead has been successfully rescored with the updated information.",
+      });
+      setUpdateDialogOpen(false);
+      loadQualifications();
+    } catch (error) {
+      console.error("Error updating qualification:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update qualification. Please try again.",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // Function to extract the key need
@@ -225,6 +278,9 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                             <Button variant="outline" size="icon" onClick={() => handleView(qual)}>
                               <Eye className="h-4 w-4" />
                             </Button>
+                            <Button variant="outline" size="icon" onClick={() => handleUpdateClick(qual)}>
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
                             <Button variant="outline" size="icon" onClick={() => confirmDelete(qual.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -276,6 +332,120 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Update Lead Information</DialogTitle>
+            <DialogDescription>
+              Update the information below to rescore this lead. A new qualification will be created with the updated data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="update-company">Company Name</Label>
+              <Input
+                id="update-company"
+                value={updateFormData.companyName}
+                onChange={(e) => setUpdateFormData({...updateFormData, companyName: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="update-industry">Industry</Label>
+              <Select 
+                value={updateFormData.industry} 
+                onValueChange={(value) => setUpdateFormData({...updateFormData, industry: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TOP_INDUSTRIES.map((industry) => (
+                    <SelectItem key={industry} value={industry}>
+                      {industry}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="update-employees">Number of Employees</Label>
+              <Select 
+                value={updateFormData.employeeCount} 
+                onValueChange={(value) => setUpdateFormData({...updateFormData, employeeCount: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select employee range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYEE_RANGES.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="update-revenue">Annual Revenue</Label>
+              <Select 
+                value={updateFormData.annualRevenue} 
+                onValueChange={(value) => setUpdateFormData({...updateFormData, annualRevenue: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select revenue range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {REVENUE_RANGES.map((range) => (
+                    <SelectItem key={range} value={range}>
+                      {range}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="update-website">Website</Label>
+              <Input
+                id="update-website"
+                value={updateFormData.website}
+                onChange={(e) => setUpdateFormData({...updateFormData, website: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="update-challenges">Business Challenges</Label>
+              <textarea
+                id="update-challenges"
+                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={updateFormData.challenges}
+                onChange={(e) => setUpdateFormData({...updateFormData, challenges: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="submit" 
+              onClick={handleUpdateSubmit}
+              disabled={isUpdating}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {isUpdating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update & Rescore"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -165,3 +165,82 @@ export async function deleteQualification(id: string) {
   console.log(`Successfully deleted qualification ID: ${id}`);
   return true;
 }
+
+// Function to update a qualification with new data
+export async function updateQualification(id: string, updateData: Partial<BusinessFormData>) {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  
+  if (userError || !user) {
+    console.error('User authentication error:', userError);
+    throw new Error("User not authenticated");
+  }
+  
+  // Get the original qualification
+  const { data: original, error: fetchError } = await supabase
+    .from('business_qualifications')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id) // Ensure users can only update their own records
+    .single();
+  
+  if (fetchError || !original) {
+    console.error('Error fetching original qualification:', fetchError);
+    throw new Error('Failed to fetch original qualification');
+  }
+  
+  // Prepare data for analysis
+  const analysisData: BusinessFormData = {
+    companyName: updateData.companyName || original.company_name,
+    industry: updateData.industry || original.industry,
+    employeeCount: updateData.employeeCount || original.employee_count,
+    annualRevenue: updateData.annualRevenue || original.annual_revenue,
+    website: updateData.website || original.website,
+    challenges: updateData.challenges || original.challenges
+  };
+  
+  console.log('Analyzing updated lead data:', analysisData);
+  
+  // Re-analyze the lead
+  const analysis = await analyzeBusinessLead(analysisData);
+  
+  // Extract the key need from the updated data
+  const keyNeed = extractKeyNeed({
+    qualification_summary: analysis.summary,
+    qualification_insights: analysis.insights,
+    qualification_recommendations: analysis.recommendations,
+    challenges: analysisData.challenges
+  });
+  
+  // Create a new qualification record (rather than updating the existing one)
+  const newQualification = {
+    user_id: user.id,
+    company_name: analysisData.companyName,
+    industry: analysisData.industry,
+    employee_count: analysisData.employeeCount,
+    annual_revenue: analysisData.annualRevenue,
+    website: analysisData.website,
+    challenges: analysisData.challenges,
+    qualification_score: analysis.score,
+    qualification_summary: analysis.summary,
+    qualification_insights: analysis.insights,
+    qualification_recommendations: analysis.recommendations,
+    key_need: keyNeed
+  };
+  
+  console.log('Creating new qualification with updated data for user:', user.id);
+  
+  // Insert as a new record
+  const { data: savedData, error: saveError } = await supabase
+    .from('business_qualifications')
+    .insert(newQualification)
+    .select()
+    .single();
+  
+  if (saveError) {
+    console.error('Error saving updated qualification:', saveError);
+    throw new Error('Failed to save updated qualification');
+  }
+  
+  console.log('Successfully created updated qualification with ID:', savedData.id);
+  return savedData;
+}
