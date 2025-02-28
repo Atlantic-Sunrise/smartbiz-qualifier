@@ -187,6 +187,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                   <TableRow>
                     <TableHead>Company</TableHead>
                     <TableHead>Industry</TableHead>
+                    <TableHead>Key Need</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -197,6 +198,7 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                     <TableRow key={qual.id}>
                       <TableCell className="font-medium">{qual.company_name}</TableCell>
                       <TableCell>{qual.industry}</TableCell>
+                      <TableCell>{qual.key_need || extractKeyNeed(qual)}</TableCell>
                       <TableCell>{qual.qualification_score}/100</TableCell>
                       <TableCell>{formatDistanceToNow(new Date(qual.created_at), { addSuffix: true })}</TableCell>
                       <TableCell className="text-right">
