@@ -133,33 +133,35 @@ export default function Auth() {
     }
   };
 
-  const handleSendMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendPasswordResetEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Use signInWithOtp instead of resetPasswordForEmail
-      const { error } = await supabase.auth.signInWithOtp({
-        email: resetPasswordEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        }
+      const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
       });
 
       if (error) {
+        if (error.message.toLowerCase().includes('rate limit') || 
+            error.message.includes('429')) {
+          setRateLimitError(true);
+          console.error("Rate limit error:", error.message);
+          throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
+        }
         throw error;
       }
 
       toast({
-        title: "Magic link sent",
-        description: "Check your email for a link to sign in instantly",
+        title: "Reset link sent",
+        description: "Check your email for a password reset link",
       });
       
       setResetPasswordDialogOpen(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error sending magic link",
+        title: "Error sending reset link",
         description: error.message || "An unknown error occurred",
       });
     } finally {
@@ -321,21 +323,21 @@ export default function Auth() {
                 {loading ? "Signing In..." : "Sign In"}
               </Button>
 
-              <div className="text-center mt-2">
+              <div className="text-center mt-2 flex justify-center gap-4">
                 <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="link" className="text-sm">
-                      Login with magic link
+                      Forgot password?
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Login with Magic Link</DialogTitle>
+                      <DialogTitle>Reset Your Password</DialogTitle>
                       <DialogDescription>
-                        Enter your email to receive a one-time login link
+                        Enter your email to receive a password reset link
                       </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSendMagicLink} className="space-y-4 pt-2">
+                    <form onSubmit={handleSendPasswordResetEmail} className="space-y-4 pt-2">
                       <div className="space-y-2">
                         <Label htmlFor="reset-email">Email</Label>
                         <Input
@@ -348,10 +350,10 @@ export default function Auth() {
                         />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Enter your email address and we'll send you a magic link to log in instantly.
+                        Enter your email address and we'll send you a password reset link.
                       </p>
                       <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? "Sending..." : "Send Magic Link"}
+                        {loading ? "Sending..." : "Send Reset Link"}
                       </Button>
                     </form>
                   </DialogContent>
