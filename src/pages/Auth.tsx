@@ -9,12 +9,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rateLimitError, setRateLimitError] = useState(false);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState("");
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -118,6 +121,36 @@ export default function Auth() {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for a link to reset your password",
+      });
+      
+      setResetPasswordDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error sending reset email",
+        description: error.message || "An unknown error occurred",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-6 space-y-6">
@@ -180,6 +213,40 @@ export default function Auth() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing In..." : "Sign In"}
               </Button>
+
+              <div className="text-center mt-2">
+                <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="link" className="text-sm">
+                      Forgot your password?
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleResetPassword} className="space-y-4 pt-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="you@company.com"
+                          value={resetPasswordEmail}
+                          onChange={(e) => setResetPasswordEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Enter your email address and we'll send you a link to reset your password.
+                      </p>
+                      <Button type="submit" className="w-full" disabled={loading}>
+                        {loading ? "Sending..." : "Send Reset Link"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </form>
           </TabsContent>
           
