@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -68,21 +68,23 @@ export default function Auth() {
     setRateLimitError(false);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      console.log("Attempting to sign in with email:", email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
       
       if (error) {
+        console.error("Sign-in error:", error);
         if (error.message.toLowerCase().includes('rate limit') || 
             error.message.includes('429')) {
           setRateLimitError(true);
-          console.error("Rate limit error:", error.message);
           throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
         }
         throw error;
       }
       
+      console.log("Sign-in successful:", data);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -100,8 +102,9 @@ export default function Auth() {
     setRateLimitError(false);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      console.log("Attempting to sign up with email:", email);
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
           emailRedirectTo: window.location.origin,
@@ -109,14 +112,16 @@ export default function Auth() {
       });
       
       if (error) {
+        console.error("Sign-up error:", error);
         if (error.message.toLowerCase().includes('rate limit') || 
             error.message.includes('429')) {
           setRateLimitError(true);
-          console.error("Rate limit error:", error.message);
           throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
         }
         throw error;
       }
+      
+      console.log("Sign-up response:", data);
       
       toast({
         title: "Account created!",
@@ -138,15 +143,22 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      console.log("Sending magic link to:", resetPasswordEmail);
       // Use signInWithOtp instead of resetPasswordForEmail
       const { error } = await supabase.auth.signInWithOtp({
-        email: resetPasswordEmail,
+        email: resetPasswordEmail.trim(),
         options: {
           emailRedirectTo: `${window.location.origin}/`,
         }
       });
 
       if (error) {
+        console.error("Magic link error:", error);
+        if (error.message.toLowerCase().includes('rate limit') || 
+            error.message.includes('429')) {
+          setRateLimitError(true);
+          throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
+        }
         throw error;
       }
 
@@ -182,14 +194,17 @@ export default function Auth() {
     }
 
     try {
+      console.log("Updating password");
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (error) {
+        console.error("Password update error:", error);
         throw error;
       }
 
+      console.log("Password updated successfully");
       toast({
         title: "Password updated successfully",
         description: "You can now sign in with your new password",
@@ -331,6 +346,9 @@ export default function Auth() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Login with Magic Link</DialogTitle>
+                      <DialogDescription>
+                        Enter your email to receive a magic link for instant login
+                      </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSendMagicLink} className="space-y-4 pt-2">
                       <div className="space-y-2">
