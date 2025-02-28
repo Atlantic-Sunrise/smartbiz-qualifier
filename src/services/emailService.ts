@@ -48,14 +48,22 @@ export async function sendQualificationSummary(data: QualificationSummaryEmailDa
 
 export async function sendMultipleQualificationsSummary(data: MultipleQualificationsSummaryEmailData) {
   try {
+    console.log("Sending qualifications summary email", {
+      email: data.email,
+      qualificationCount: data.qualifications.length,
+      includeDetails: data.includeDetails
+    });
+    
     const response = await supabase.functions.invoke('send-all-qualifications-summary', {
       body: data,
     });
     
     if (response.error) {
+      console.error("Error from Edge Function:", response.error);
       throw new Error(response.error.message || 'Failed to send email');
     }
     
+    console.log("Email function response:", response.data);
     return response.data;
   } catch (error) {
     console.error('Error sending multiple qualifications summary email:', error);

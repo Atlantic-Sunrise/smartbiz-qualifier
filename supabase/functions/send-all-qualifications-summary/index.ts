@@ -29,13 +29,19 @@ interface MultipleQualificationsSummaryEmailData {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log("Starting email sending process...");
     const data: MultipleQualificationsSummaryEmailData = await req.json();
     const { email, qualifications, includeDetails = false } = data;
+
+    console.log(`Received request to send email to: ${email}`);
+    console.log(`Number of qualifications: ${qualifications?.length || 0}`);
+    console.log(`Include details: ${includeDetails}`);
 
     if (!qualifications || qualifications.length === 0) {
       throw new Error("No qualifications provided for the email");
@@ -105,13 +111,13 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("Error formatting date:", e);
       }
       
-      const insightsSummary = qual.insights
-        .map((insight) => `<li style="margin-bottom: 8px;">${insight}</li>`)
-        .join("");
+      const insightsSummary = qual.insights && Array.isArray(qual.insights)
+        ? qual.insights.map((insight) => `<li style="margin-bottom: 8px;">${insight}</li>`).join("")
+        : "<li>No insights available</li>";
         
-      const recommendationsSummary = qual.recommendations
-        .map((rec) => `<li style="margin-bottom: 8px;">${rec}</li>`)
-        .join("");
+      const recommendationsSummary = qual.recommendations && Array.isArray(qual.recommendations)
+        ? qual.recommendations.map((rec) => `<li style="margin-bottom: 8px;">${rec}</li>`).join("")
+        : "<li>No recommendations available</li>";
 
       return `
         <div style="background-color: #f9f9f9; border-radius: 8px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -125,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14px; color: #666;">
             <div>Date: ${formattedDate}</div>
-            <div>${qual.annualRevenue || "Revenue: Unknown"}</div>
+            <div>${qual.annualRevenue ? `Revenue: ${qual.annualRevenue}` : "Revenue: Unknown"}</div>
           </div>
           
           ${qual.keyNeed ? `
@@ -136,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
           
           <div style="margin-bottom: 15px;">
             <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 8px; font-size: 16px;">Summary</h3>
-            <p style="margin-top: 8px;">${qual.summary}</p>
+            <p style="margin-top: 8px;">${qual.summary || "No summary available"}</p>
           </div>
           
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -158,6 +164,8 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }).join("") : '';
 
+    console.log("Generating email...");
+    
     const emailResponse = await resend.emails.send({
       from: "Qualification App <onboarding@resend.dev>",
       to: [email],
