@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -133,35 +133,33 @@ export default function Auth() {
     }
   };
 
-  const handleSendPasswordResetEmail = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth?type=recovery`,
+      // Use signInWithOtp instead of resetPasswordForEmail
+      const { error } = await supabase.auth.signInWithOtp({
+        email: resetPasswordEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        }
       });
 
       if (error) {
-        if (error.message.toLowerCase().includes('rate limit') || 
-            error.message.includes('429')) {
-          setRateLimitError(true);
-          console.error("Rate limit error:", error.message);
-          throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
-        }
         throw error;
       }
 
       toast({
-        title: "Reset link sent",
-        description: "Check your email for a password reset link",
+        title: "Magic link sent",
+        description: "Check your email for a link to sign in instantly",
       });
       
       setResetPasswordDialogOpen(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error sending reset link",
+        title: "Error sending magic link",
         description: error.message || "An unknown error occurred",
       });
     } finally {
@@ -323,21 +321,18 @@ export default function Auth() {
                 {loading ? "Signing In..." : "Sign In"}
               </Button>
 
-              <div className="text-center mt-2 flex justify-center gap-4">
+              <div className="text-center mt-2">
                 <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="link" className="text-sm">
-                      Forgot password?
+                      Login with magic link
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Reset Your Password</DialogTitle>
-                      <DialogDescription>
-                        Enter your email to receive a password reset link
-                      </DialogDescription>
+                      <DialogTitle>Login with Magic Link</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSendPasswordResetEmail} className="space-y-4 pt-2">
+                    <form onSubmit={handleSendMagicLink} className="space-y-4 pt-2">
                       <div className="space-y-2">
                         <Label htmlFor="reset-email">Email</Label>
                         <Input
@@ -350,10 +345,10 @@ export default function Auth() {
                         />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Enter your email address and we'll send you a password reset link.
+                        Enter your email address and we'll send you a magic link to log in instantly.
                       </p>
                       <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? "Sending..." : "Send Reset Link"}
+                        {loading ? "Sending..." : "Send Magic Link"}
                       </Button>
                     </form>
                   </DialogContent>
