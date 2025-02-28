@@ -43,40 +43,46 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle case where profile might not exist
 
       if (error) {
-        // If the error is that no rows were returned, it might mean the profile doesn't exist yet
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, creating a new one');
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        console.log('Profile not found, creating a new one');
+        
+        // Try to create a profile
+        const { error: insertError, data: newProfile } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: user.id,
+            updated_at: new Date().toISOString()
+          }])
+          .select('*')
+          .single();
           
-          // Try to create a profile
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert([{ id: user.id }]);
-            
-          if (insertError) {
-            console.error('Error creating profile:', insertError);
-            throw insertError;
-          }
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
           
-          // Fetch the newly created profile
-          const { data: newProfile, error: newProfileError } = await supabase
+          // Try an alternative approach with upsert
+          const { error: upsertError, data: upsertedProfile } = await supabase
             .from('profiles')
+            .upsert([{ id: user.id }], { onConflict: 'id' })
             .select('*')
-            .eq('id', user.id)
             .single();
             
-          if (newProfileError) {
-            console.error('Error fetching new profile:', newProfileError);
-            throw newProfileError;
+          if (upsertError) {
+            console.error('Error upserting profile:', upsertError);
+            throw upsertError;
           }
           
-          console.log("New profile created:", newProfile);
-          setProfile(newProfile);
+          console.log("New profile created via upsert:", upsertedProfile);
+          setProfile(upsertedProfile);
         } else {
-          console.error('Error fetching profile:', error);
-          throw error;
+          console.log("New profile created via insert:", newProfile);
+          setProfile(newProfile);
         }
       } else {
         console.log("Profile data retrieved:", data);
