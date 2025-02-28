@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle, Info } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [rateLimitError, setRateLimitError] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,14 +44,49 @@ export default function Auth() {
     };
   }, [navigate]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setRateLimitError(false);
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
+        password,
+      });
+      
+      if (error) {
+        // Check specifically for rate limit errors
+        if (error.message.toLowerCase().includes('rate limit') || 
+            error.message.includes('429')) {
+          setRateLimitError(true);
+          console.error("Rate limit error:", error.message);
+          throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
+        }
+        throw error;
+      }
+      
+      // No need for toast on successful login as the user will be redirected
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing in",
+        description: error.message || "An unknown error occurred",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setRateLimitError(false);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
         options: {
           emailRedirectTo: window.location.origin,
         },
@@ -61,19 +98,19 @@ export default function Auth() {
             error.message.includes('429')) {
           setRateLimitError(true);
           console.error("Rate limit error:", error.message);
-          throw new Error("Email rate limit exceeded. Please wait a few minutes before trying again.");
+          throw new Error("Rate limit exceeded. Please wait a few minutes before trying again.");
         }
         throw error;
       }
       
       toast({
-        title: "Magic link sent!",
-        description: "Check your email for the login link.",
+        title: "Account created!",
+        description: "Check your email to confirm your account.",
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error creating account",
         description: error.message || "An unknown error occurred",
       });
     } finally {
@@ -87,7 +124,7 @@ export default function Auth() {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Welcome to Lead Qualifier</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Enter your email to sign in or create an account
+            Sign in or create an account to continue
           </p>
         </div>
 
@@ -108,29 +145,78 @@ export default function Auth() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <Tabs defaultValue="signin" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
           
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Sending Magic Link..." : "Send Magic Link"}
-          </Button>
-        </form>
-        
-        <div className="text-center pt-2">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            We'll email you a magic link for a password-free sign in.
-          </p>
-        </div>
+          <TabsContent value="signin">
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signin-email">Email</Label>
+                <Input
+                  id="signin-email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input
+                  id="signin-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Signing In..." : "Sign In"}
+              </Button>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="signup">
+            <form onSubmit={handleSignUp} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <Input
+                  id="signup-password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-500">Password must be at least 6 characters</p>
+              </div>
+              
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
       </Card>
     </div>
   );
