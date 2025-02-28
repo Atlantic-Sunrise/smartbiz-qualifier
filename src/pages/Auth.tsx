@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertCircle, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
@@ -331,6 +331,9 @@ export default function Auth() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Login with Magic Link</DialogTitle>
+                      <DialogDescription>
+                        Enter your email to receive a one-time login link
+                      </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSendMagicLink} className="space-y-4 pt-2">
                       <div className="space-y-2">
