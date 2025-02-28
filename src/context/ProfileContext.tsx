@@ -38,58 +38,39 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const user = session.user;
       console.log("Fetching profile for user:", user.id);
       
-      // Fetch profile data for this user
-      const { data, error } = await supabase
+      // First, try a simple select
+      let { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to handle case where profile might not exist
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
-      
-      if (!data) {
-        console.log('Profile not found, creating a new one');
+      // If there's no data or there's an error, we'll try to create the profile
+      if (!data || error) {
+        console.log('Profile not found or error occurred, attempting to create/update');
         
-        // Try to create a profile
-        const { error: insertError, data: newProfile } = await supabase
+        // Use upsert which will either insert a new record or update an existing one
+        const { data: upsertData, error: upsertError } = await supabase
           .from('profiles')
-          .insert([{ 
+          .upsert({ 
             id: user.id,
             updated_at: new Date().toISOString()
-          }])
-          .select('*')
+          })
+          .select()
           .single();
           
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          
-          // Try an alternative approach with upsert
-          const { error: upsertError, data: upsertedProfile } = await supabase
-            .from('profiles')
-            .upsert([{ id: user.id }], { onConflict: 'id' })
-            .select('*')
-            .single();
-            
-          if (upsertError) {
-            console.error('Error upserting profile:', upsertError);
-            throw upsertError;
-          }
-          
-          console.log("New profile created via upsert:", upsertedProfile);
-          setProfile(upsertedProfile);
-        } else {
-          console.log("New profile created via insert:", newProfile);
-          setProfile(newProfile);
+        if (upsertError) {
+          console.error('Error upserting profile:', upsertError);
+          throw upsertError;
         }
+        
+        data = upsertData;
+        console.log("Profile upserted successfully:", data);
       } else {
-        console.log("Profile data retrieved:", data);
-        setProfile(data);
+        console.log("Existing profile found:", data);
       }
       
-      // Never show API key input, as we've removed that feature
+      setProfile(data);
       setShowApiKeyInput(false);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
