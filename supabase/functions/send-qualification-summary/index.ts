@@ -109,12 +109,16 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     // Send the email through Resend
-    console.log("Sending email to", email);
+    console.log("Sending email to verified account (testing mode)");
+    
+    // IMPORTANT: For testing, always send to the verified email
+    // In production with a verified domain, you can use the original email
     const emailResponse = await resend.emails.send({
       from: "Lead Qualifier <onboarding@resend.dev>",
-      to: [email],
-      subject: `Lead Qualification: ${businessName}`,
+      to: ["myatlanticsunrise@gmail.com"], // Always use the verified email in testing
+      subject: `Lead Qualification for ${businessName} (sent to ${email})`,
       html: htmlContent,
+      text: `[This email was originally intended for ${email}] - Lead Qualification for ${businessName}`
     });
 
     console.log("Email sent successfully:", emailResponse);

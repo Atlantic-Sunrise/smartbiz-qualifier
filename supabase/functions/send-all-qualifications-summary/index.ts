@@ -164,6 +164,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div style="text-align: center; margin-bottom: 30px;">
             <h1 style="margin-bottom: 10px;">${includeDetails ? 'Detailed Lead Qualification Reports' : 'Lead Qualifications Summary'}</h1>
             <p style="font-size: 16px; color: #666;">A summary of all your qualified leads (${qualifications.length} total)</p>
+            <p style="font-size: 14px; color: #666; font-style: italic;">[This email was originally intended for ${email}]</p>
           </div>
           
           ${includeDetails ? detailedReportsHtml : qualificationsTable}
@@ -176,11 +177,11 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     // Send the email through Resend
-    console.log("Sending email to", email);
+    console.log("Sending email to verified account (testing mode)");
     const emailResponse = await resend.emails.send({
       from: "Lead Qualifier <onboarding@resend.dev>",
-      to: [email],
-      subject: subject,
+      to: ["myatlanticsunrise@gmail.com"], // Always use the verified email in testing
+      subject: `${subject} (for ${email})`,
       html: htmlContent,
     });
 

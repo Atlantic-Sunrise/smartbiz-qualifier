@@ -8,10 +8,11 @@ import { VoiceInput } from "./VoiceInput";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Send, Mail } from "lucide-react";
+import { Send, Mail, AlertCircle } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { sendQualificationSummary } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 interface QualificationResultsProps {
   results: {
@@ -126,19 +127,21 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
       const keyNeed = extractKeyNeed();
       
       // Send the email
-      await sendQualificationSummary({
+      const response = await sendQualificationSummary({
         email: user.email,
         businessName: businessName,
         score: results.score,
         summary: results.summary,
         insights: results.insights,
         recommendations: results.recommendations,
-        keyNeed: keyNeed // Use keyNeed instead of challenge
+        keyNeed: keyNeed
       });
       
       toast({
         title: "Summary Sent",
-        description: `Qualification summary has been sent to ${user.email}`,
+        description: response.testingMode 
+          ? `In testing mode: Email sent to ${response.redirectedTo} instead of ${user.email}`
+          : `Qualification summary has been sent to ${user.email}`,
       });
     } catch (error) {
       console.error("Error sending summary:", error);
@@ -160,6 +163,15 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
       <Card className="p-6">
         <div className="flex flex-col space-y-4">
           <ScoreDisplay score={results.score} summary={results.summary} />
+          
+          <Alert variant="info" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Testing Mode</AlertTitle>
+            <AlertDescription>
+              In development mode, all emails are sent to the registered Resend account (myatlanticsunrise@gmail.com) 
+              instead of your actual email address.
+            </AlertDescription>
+          </Alert>
           
           <div className="mt-6 flex justify-center">
             <Button 
