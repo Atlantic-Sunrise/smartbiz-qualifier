@@ -31,14 +31,21 @@ export interface MultipleQualificationsSummaryEmailData {
 
 export async function sendQualificationSummary(data: QualificationSummaryEmailData) {
   try {
+    console.log("Sending single qualification summary", {
+      email: data.email,
+      business: data.businessName
+    });
+    
     const response = await supabase.functions.invoke('send-qualification-summary', {
       body: data,
     });
     
     if (response.error) {
+      console.error("Error from Edge Function:", response.error);
       throw new Error(response.error.message || 'Failed to send email');
     }
     
+    console.log("Email function response:", response.data);
     return response.data;
   } catch (error) {
     console.error('Error sending qualification summary email:', error);
@@ -53,6 +60,15 @@ export async function sendMultipleQualificationsSummary(data: MultipleQualificat
       qualificationCount: data.qualifications.length,
       includeDetails: data.includeDetails
     });
+    
+    // Make sure we have valid data
+    if (!data.email) {
+      throw new Error("Email address is required");
+    }
+    
+    if (!data.qualifications || data.qualifications.length === 0) {
+      throw new Error("No qualifications data provided");
+    }
     
     const response = await supabase.functions.invoke('send-all-qualifications-summary', {
       body: data,
