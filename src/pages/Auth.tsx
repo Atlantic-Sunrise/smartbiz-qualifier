@@ -138,8 +138,12 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetPasswordEmail, {
-        redirectTo: `${window.location.origin}/auth`,
+      // Use signInWithOtp instead of resetPasswordForEmail
+      const { error } = await supabase.auth.signInWithOtp({
+        email: resetPasswordEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        }
       });
 
       if (error) {
@@ -147,15 +151,15 @@ export default function Auth() {
       }
 
       toast({
-        title: "Login link sent",
-        description: "Check your email for a magic link to log in",
+        title: "Magic link sent",
+        description: "Check your email for a link to sign in instantly",
       });
       
       setResetPasswordDialogOpen(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error sending login link",
+        title: "Error sending magic link",
         description: error.message || "An unknown error occurred",
       });
     } finally {
