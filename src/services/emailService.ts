@@ -47,7 +47,12 @@ export async function sendQualificationSummary(data: QualificationSummaryEmailDa
     
     console.log("Email function response:", response.data);
     
-    return response.data;
+    // In development/testing mode, emails are redirected
+    return {
+      ...response.data,
+      testingMode: true,
+      redirectedTo: "myatlanticsunrise@gmail.com"
+    };
   } catch (error) {
     console.error('Error sending qualification summary email:', error);
     throw error;
@@ -82,7 +87,12 @@ export async function sendMultipleQualificationsSummary(data: MultipleQualificat
     
     console.log("Email function response:", response.data);
     
-    return response.data;
+    // In development/testing mode, emails are redirected
+    return {
+      ...response.data,
+      testingMode: true,
+      redirectedTo: "myatlanticsunrise@gmail.com"
+    };
   } catch (error) {
     console.error('Error sending multiple qualifications summary email:', error);
     throw error;

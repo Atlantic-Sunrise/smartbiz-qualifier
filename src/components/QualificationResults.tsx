@@ -8,10 +8,11 @@ import { VoiceInput } from "./VoiceInput";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Send, Mail } from "lucide-react";
+import { Send, Mail, AlertCircle } from "lucide-react";
 import { useToast } from "./ui/use-toast";
 import { sendQualificationSummary } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 interface QualificationResultsProps {
   results: {
@@ -138,7 +139,9 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
       
       toast({
         title: "Summary Sent",
-        description: `Qualification summary has been sent to ${user.email}`,
+        description: response.testingMode 
+          ? `In testing mode: Email sent to ${response.redirectedTo} instead of ${user.email}`
+          : `Qualification summary has been sent to ${user.email}`,
       });
     } catch (error) {
       console.error("Error sending summary:", error);
@@ -160,6 +163,15 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
       <Card className="p-6">
         <div className="flex flex-col space-y-4">
           <ScoreDisplay score={results.score} summary={results.summary} />
+          
+          <Alert className="mb-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-800 dark:text-blue-300">Testing Mode</AlertTitle>
+            <AlertDescription className="text-blue-700 dark:text-blue-300">
+              In development mode, all emails are sent to the registered Resend account (myatlanticsunrise@gmail.com) 
+              instead of your actual email address.
+            </AlertDescription>
+          </Alert>
           
           <div className="mt-6 flex justify-center">
             <Button 
