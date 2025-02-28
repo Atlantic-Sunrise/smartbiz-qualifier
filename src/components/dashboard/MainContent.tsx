@@ -5,7 +5,6 @@ import { ResultsDisplay } from "./ResultsDisplay";
 import { BusinessProfileSetup } from "@/components/BusinessProfileSetup";
 import { PageTitle } from "@/components/layout/PageTitle";
 import { useProfile } from "@/context/ProfileContext";
-import { supabase } from "@/integrations/supabase/client";
 import { PreviousQualifications } from "@/components/PreviousQualifications";
 
 export function MainContent() {
@@ -34,7 +33,7 @@ export function MainContent() {
         {!results ? (
           <>
             <QualificationFormSection onResultsReceived={handleResults} />
-            <PreviousQualifications />
+            <PreviousQualifications onSelectResult={handleResults} />
           </>
         ) : (
           <ResultsDisplay 
