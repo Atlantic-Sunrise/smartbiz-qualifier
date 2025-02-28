@@ -12,6 +12,9 @@ export async function submitBusinessForm(data: BusinessFormData) {
     throw new Error("User not authenticated");
   }
   
+  // Log the user ID to ensure it's correct
+  console.log('Current authenticated user ID:', user.id);
+  
   try {
     // Call API to analyze business lead
     const analysis = await analyzeBusinessLead(data);
@@ -24,9 +27,9 @@ export async function submitBusinessForm(data: BusinessFormData) {
       challenges: data.challenges
     });
     
-    console.log('Saving qualification data for user:', user.id);
-    console.log('Qualification data:', {
-      user_id: user.id,
+    // Create the qualification data object with user_id clearly set
+    const qualificationData = {
+      user_id: user.id, // Explicitly set user_id to current authenticated user
       company_name: data.companyName,
       industry: data.industry,
       employee_count: data.employeeCount,
@@ -38,25 +41,15 @@ export async function submitBusinessForm(data: BusinessFormData) {
       qualification_insights: analysis.insights,
       qualification_recommendations: analysis.recommendations,
       key_need: keyNeed
-    });
+    };
+    
+    console.log('Saving qualification data for user:', user.id);
+    console.log('Qualification data:', qualificationData);
     
     // Insert the business data and qualification results
     const { data: savedData, error: storageError } = await supabase
       .from('business_qualifications')
-      .insert({
-        user_id: user.id,
-        company_name: data.companyName,
-        industry: data.industry,
-        employee_count: data.employeeCount,
-        annual_revenue: data.annualRevenue,
-        website: data.website,
-        challenges: data.challenges,
-        qualification_score: analysis.score,
-        qualification_summary: analysis.summary,
-        qualification_insights: analysis.insights,
-        qualification_recommendations: analysis.recommendations,
-        key_need: keyNeed
-      })
+      .insert(qualificationData)
       .select()
       .single();
 
@@ -65,7 +58,17 @@ export async function submitBusinessForm(data: BusinessFormData) {
       throw new Error('Failed to save form data: ' + storageError.message);
     }
 
-    console.log('Successfully saved qualification data:', savedData);
+    console.log('Successfully saved qualification data with ID:', savedData.id);
+    console.log('User ID saved in record:', savedData.user_id);
+    
+    // Double-check that the saved user_id matches the current user
+    if (savedData.user_id !== user.id) {
+      console.error('User ID mismatch in saved data!', {
+        currentUserId: user.id,
+        savedUserId: savedData.user_id
+      });
+    }
+    
     return analysis;
   } catch (error) {
     console.error('Error in submitBusinessForm:', error);
@@ -120,6 +123,8 @@ export async function fetchQualifications() {
     throw new Error("User not authenticated");
   }
   
+  console.log('Fetching qualifications for user ID:', user.id);
+  
   const { data, error } = await supabase
     .from('business_qualifications')
     .select('*')
@@ -131,6 +136,7 @@ export async function fetchQualifications() {
     throw new Error('Failed to fetch qualifications');
   }
   
+  console.log(`Found ${data?.length || 0} qualifications for user:`, user.id);
   return data;
 }
 
@@ -143,6 +149,8 @@ export async function deleteQualification(id: string) {
     throw new Error("User not authenticated");
   }
   
+  console.log(`Deleting qualification ID: ${id} for user ID: ${user.id}`);
+  
   const { error } = await supabase
     .from('business_qualifications')
     .delete()
@@ -154,5 +162,6 @@ export async function deleteQualification(id: string) {
     throw new Error('Failed to delete qualification');
   }
   
+  console.log(`Successfully deleted qualification ID: ${id}`);
   return true;
 }
