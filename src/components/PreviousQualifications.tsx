@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EMPLOYEE_RANGES, REVENUE_RANGES, TOP_INDUSTRIES } from "@/constants/businessFormConstants";
+import { Badge } from "@/components/ui/badge";
 
 interface PreviousQualificationsProps {
   onSelectResult: (results: any, companyName: string) => void;
@@ -50,6 +51,33 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     setIsLoading(true);
     try {
       const data = await fetchQualifications();
+      
+      // Mark rescored entries
+      if (data && data.length > 0) {
+        // Group by company name
+        const companyGroups: Record<string, any[]> = {};
+        data.forEach(qual => {
+          const companyName = qual.company_name;
+          if (!companyGroups[companyName]) {
+            companyGroups[companyName] = [];
+          }
+          companyGroups[companyName].push(qual);
+        });
+        
+        // For each company with multiple entries, mark rescored ones
+        Object.values(companyGroups).forEach(group => {
+          if (group.length > 1) {
+            // Sort by date ascending to find the original (oldest)
+            group.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            
+            // Mark all but the first (oldest) as rescored
+            for (let i = 1; i < group.length; i++) {
+              group[i].is_rescored = true;
+            }
+          }
+        });
+      }
+      
       setQualifications(data || []);
     } catch (error) {
       console.error("Error loading qualifications:", error);
@@ -269,7 +297,16 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
                   <TableBody>
                     {qualifications.map((qual) => (
                       <TableRow key={qual.id}>
-                        <TableCell className="font-medium">{qual.company_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {qual.company_name}
+                            {qual.is_rescored && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                Updated
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>{qual.industry}</TableCell>
                         <TableCell>{qual.key_need || extractKeyNeed(qual)}</TableCell>
                         <TableCell>{qual.qualification_score}/100</TableCell>
