@@ -164,10 +164,10 @@ export function QualificationResults({ results, businessName = "" }: Qualificati
         <div className="flex flex-col space-y-4">
           <ScoreDisplay score={results.score} summary={results.summary} />
           
-          <Alert variant="info" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Testing Mode</AlertTitle>
-            <AlertDescription>
+          <Alert className="mb-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-blue-800 dark:text-blue-300">Testing Mode</AlertTitle>
+            <AlertDescription className="text-blue-700 dark:text-blue-300">
               In development mode, all emails are sent to the registered Resend account (myatlanticsunrise@gmail.com) 
               instead of your actual email address.
             </AlertDescription>
