@@ -4,11 +4,20 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, Eye, Mail, FileText } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { useToast } from "./ui/use-toast";
 import { fetchQualifications, deleteQualification } from "@/services/businessFormService";
 import { sendMultipleQualificationsSummary } from "@/services/emailService";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PreviousQualificationsProps {
   onSelectResult: (results: any, companyName: string) => void;
@@ -19,6 +28,8 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   const [isLoading, setIsLoading] = useState(true);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingDetailed, setIsSendingDetailed] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [qualificationToDelete, setQualificationToDelete] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadQualifications = async () => {
@@ -42,9 +53,16 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
     loadQualifications();
   }, []);
 
-  const handleDelete = async (id: string) => {
+  const confirmDelete = (id: string) => {
+    setQualificationToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!qualificationToDelete) return;
+    
     try {
-      await deleteQualification(id);
+      await deleteQualification(qualificationToDelete);
       toast({
         title: "Qualification Deleted",
         description: "The qualification has been successfully removed.",
@@ -57,6 +75,9 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
         title: "Error",
         description: "Failed to delete qualification. Please try again.",
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setQualificationToDelete(null);
     }
   };
 
@@ -172,89 +193,108 @@ export function PreviousQualifications({ onSelectResult }: PreviousQualification
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Previous Lead Qualifications</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="text-center py-6">Loading previous qualifications...</div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Industry</TableHead>
-                    <TableHead>Key Need</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {qualifications.map((qual) => (
-                    <TableRow key={qual.id}>
-                      <TableCell className="font-medium">{qual.company_name}</TableCell>
-                      <TableCell>{qual.industry}</TableCell>
-                      <TableCell>{qual.key_need || extractKeyNeed(qual)}</TableCell>
-                      <TableCell>{qual.qualification_score}/100</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="icon" onClick={() => handleView(qual)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="icon" onClick={() => handleDelete(qual.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Previous Lead Qualifications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-6">Loading previous qualifications...</div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Industry</TableHead>
+                      <TableHead>Key Need</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {qualifications.map((qual) => (
+                      <TableRow key={qual.id}>
+                        <TableCell className="font-medium">{qual.company_name}</TableCell>
+                        <TableCell>{qual.industry}</TableCell>
+                        <TableCell>{qual.key_need || extractKeyNeed(qual)}</TableCell>
+                        <TableCell>{qual.qualification_score}/100</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="icon" onClick={() => handleView(qual)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="icon" onClick={() => confirmDelete(qual.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
-            <div className="flex flex-col items-center w-full mt-8 space-y-4">
-              <Button 
-                onClick={() => handleSendAllSummaries(false)}
-                disabled={isSendingEmail}
-                className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                {isSendingEmail ? (
-                  <>
-                    <Mail className="h-4 w-4 animate-pulse" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4" />
-                    Email Summary Table
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-col items-center w-full mt-8 space-y-4">
+                <Button 
+                  onClick={() => handleSendAllSummaries(false)}
+                  disabled={isSendingEmail}
+                  className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  {isSendingEmail ? (
+                    <>
+                      <Mail className="h-4 w-4 animate-pulse" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" />
+                      Email Summary Table
+                    </>
+                  )}
+                </Button>
 
-              <Button 
-                onClick={() => handleSendAllSummaries(true)}
-                disabled={isSendingDetailed}
-                className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                {isSendingDetailed ? (
-                  <>
-                    <FileText className="h-4 w-4 animate-pulse" />
-                    Sending Detailed Reports...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4" />
-                    Send Detailed Reports
-                  </>
-                )}
-              </Button>
-            </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+                <Button 
+                  onClick={() => handleSendAllSummaries(true)}
+                  disabled={isSendingDetailed}
+                  className="w-full max-w-2xl bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-800 dark:hover:to-gray-900 dark:text-white transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  {isSendingDetailed ? (
+                    <>
+                      <FileText className="h-4 w-4 animate-pulse" />
+                      Sending Detailed Reports...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Send Detailed Reports
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this lead qualification. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
